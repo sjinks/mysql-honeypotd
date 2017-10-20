@@ -40,7 +40,7 @@ static void usage()
         "  -g, --group GROUP     drop privileges and switch to this GROUP\n"
         "                        (default: daemon or nogroup)\n"
         "  -f, --foreground      do not daemonize\n"
-        "  -h,  --help            display this help and exit\n"
+        "  -h, --help            display this help and exit\n"
         "  -v, --version         output version information and exit\n\n"
         "Please report bugs here: <https://github.com/sjinks/mysql-honeypotd/issues>\n"
     );
