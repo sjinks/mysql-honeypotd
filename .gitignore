@@ -1,0 +1,6 @@
+*.d
+*.o
+mysql-honeypotd
+/.cproject
+/.project
+/.settings/
