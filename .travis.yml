@@ -1,0 +1,21 @@
+language: c
+
+dist: trusty
+sudo: false
+
+env:
+  global:
+  - CFLAGS="-O2 -g3 -Wall -Wextra -fvisibility=hidden -fno-strict-aliasing -Wno-unused-parameter"
+
+addons:
+  apt:
+    packages:
+    - valgrind
+    - libev-dev
+
+compiler:
+  - gcc
+  - clang
+
+script:
+  - make
