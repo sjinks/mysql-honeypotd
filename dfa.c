@@ -6,25 +6,8 @@
 #include "globals.h"
 #include "utils.h"
 
-#include <stdio.h>
-
 static int out_of_order(struct connection_t* conn, int mask)
 {
-    if (conn->buffer) {
-        for (int i=0; i<conn->size; ++i) {
-            fprintf(stderr, "%.02hhX ", conn->buffer[i]);
-        }
-        fprintf(stderr, "\n");
-    }
-    else {
-        conn->size |= ((uint32_t)conn->sequence << 24);
-        char* x = (char*)(&conn->size);
-        for (int i=0; i<4; ++i) {
-            fprintf(stderr, "%.02hhX ", x[i]);
-        }
-        fprintf(stderr, "\n");
-    }
-
     syslog(
         LOG_DAEMON | LOG_WARNING,
         "Packets are out of order or invalid from %s:%u connecting to %s:%u",
