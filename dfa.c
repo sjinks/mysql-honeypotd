@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 #include <syslog.h>
 #include "dfa.h"
