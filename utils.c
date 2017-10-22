@@ -103,8 +103,6 @@ char* create_auth_switch_request(unsigned char seq)
     return result;
 }
 
-#include <stdio.h>
-
 char* create_auth_failed(unsigned char seq, const char* user, const char* server, int use_pwd)
 {
     /*
@@ -212,6 +210,8 @@ void get_ip_port(const struct sockaddr* addr, char* ipstr, uint16_t* port)
     }
     else {
         /* Should not happen */
+        *ipstr = NULL;
+        *port  = 0;
         assert(0);
     }
 }
