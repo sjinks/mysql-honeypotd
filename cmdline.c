@@ -32,7 +32,7 @@ __attribute__((noreturn))
 static void usage()
 {
     printf(
-        "Usage: mysql-honeypotd [options]...\n"
+        "Usage: mysql-honeypotd [options]...\n\n"
         "Low-interaction MySQL honeypot\n\n"
         "Mandatory arguments to long options are mandatory for short options too.\n"
         "  -b, --address ADDRESS the IP address to bind to (default: 0.0.0.0)\n"
@@ -49,6 +49,13 @@ static void usage()
         "  -f, --foreground      do not daemonize\n"
         "  -h, --help            display this help and exit\n"
         "  -v, --version         output version information and exit\n\n"
+        "NOTES:\n"
+        "  1. --user, --group, and --chroot options are honored only if\n"
+        "     mysql-honeypotd is run as root\n"
+        "  2. PID file can be outside of chroot\n"
+        "  3. When using --name and/or --group, please make sure that\n"
+        "     the PID file can be deleted by the target user\n"
+        "\n"
         "Please report bugs here: <https://github.com/sjinks/mysql-honeypotd/issues>\n"
     );
 
@@ -121,15 +128,16 @@ static void resolve_pid_file(struct globals_t* g)
             g->piddir_fd  = open(dir, O_DIRECTORY);
             e             = errno;
 
-            free(pid_dir);
             free(pid_fil);
-
             if (g->piddir_fd == -1) {
                 fprintf(stderr, "ERROR: Failed to open directory %s: %s\n", dir, strerror(e));
                 free(g->pid_file);
+                free(pid_dir);
                 g->pid_file = NULL;
                 return;
             }
+
+            free(pid_dir);
         }
     }
 }
