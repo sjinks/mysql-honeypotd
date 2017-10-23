@@ -2,8 +2,19 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <grp.h>
+#include <sys/socket.h>
+#include <netdb.h>
 #include "daemon.h"
 #include "globals.h"
+
+static void load_resolver()
+{
+    struct addrinfo *result = NULL;
+    getaddrinfo("localhost", NULL, NULL, &result);
+    if (result) {
+        freeaddrinfo(result);
+    }
+}
 
 static int find_account(uid_t* uid, gid_t* gid)
 {
@@ -59,6 +70,7 @@ int daemonize(struct globals_t* g)
         }
 
         if (g->chroot_dir) {
+            load_resolver();
             if (-1 == chroot(g->chroot_dir)) {
                 return DAEMONIZE_CHROOT;
             }
