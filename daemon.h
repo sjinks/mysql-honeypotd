@@ -1,11 +1,15 @@
 #ifndef DAEMON_H
 #define DAEMON_H
 
-#define DP_NO_UNPRIV_ACCOUNT         1
-#define DP_GENERAL_FAILURE           2
-
 struct globals_t;
 
-int drop_privs(struct globals_t* globals);
+#define DAEMONIZE_OK         0
+#define DAEMONIZE_UNPRIV    -1
+#define DAEMONIZE_CHROOT    -2
+#define DAEMONIZE_CHDIR     -3
+#define DAEMONIZE_DROP      -4
+#define DAEMONIZE_DAEMON    -5
+
+int daemonize(struct globals_t* g);
 
 #endif /* DAEMON_H */

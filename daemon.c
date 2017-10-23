@@ -23,15 +23,28 @@ static int find_account(uid_t* uid, gid_t* gid)
     return -1;
 }
 
-int drop_privs(struct globals_t* g)
+static int drop_privs(struct globals_t* g)
 {
-    if (0 == geteuid()) {
+    if (
+           setgroups(0, NULL)
+        || setgid(g->gid)
+        || setuid(g->uid)
+    ) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int daemonize(struct globals_t* g)
+{
+    if (geteuid() == 0) {
         if (!g->uid_set || !g->gid_set) {
             uid_t uid;
             gid_t gid;
 
             if (-1 == find_account(&uid, &gid)) {
-                return DP_NO_UNPRIV_ACCOUNT;
+                return DAEMONIZE_UNPRIV;
             }
 
             if (!g->uid_set) {
@@ -45,14 +58,24 @@ int drop_privs(struct globals_t* g)
             }
         }
 
-        if (
-               setgroups(0, NULL)
-            || setgid(g->gid)
-            || setuid(g->uid)
-        ) {
-            return DP_GENERAL_FAILURE;
+        if (g->chroot_dir) {
+            if (-1 == chroot(g->chroot_dir)) {
+                return DAEMONIZE_CHROOT;
+            }
+
+            if (-1 == chdir("/")) {
+                return DAEMONIZE_CHDIR;
+            }
+        }
+
+        if (-1 == drop_privs(g)) {
+            return DAEMONIZE_DROP;
         }
     }
 
-    return 0;
+    if (!g->foreground && -1 == daemon(0, 0)) {
+        return DAEMONIZE_DAEMON;
+    }
+
+    return DAEMONIZE_OK;
 }

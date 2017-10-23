@@ -10,8 +10,11 @@ struct globals_t {
     char* bind_port;
     char* pid_file;
     char* daemon_name;
+    char* chroot_dir;
+    char* pid_base;
     int socket;
     int pid_fd;
+    int piddir_fd;
     int foreground;
     int uid_set;
     int gid_set;

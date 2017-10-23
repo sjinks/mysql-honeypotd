@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <syslog.h>
@@ -15,11 +16,27 @@ void init_globals(struct globals_t* g)
 {
     memset(g, 0, sizeof(struct globals_t));
 
-    g->socket = -1;
-    g->pid_fd = -1;
-    g->loop   = EV_DEFAULT;
+    g->socket    = -1;
+    g->pid_fd    = -1;
+    g->piddir_fd = -1;
+    g->loop      = EV_DEFAULT;
 
     signal(SIGPIPE, SIG_IGN);
+}
+
+static void kill_pid_file(struct globals_t* g)
+{
+    if (g->pid_fd >= 0) {
+        assert(g->pid_file != NULL);
+        assert(g->pid_base != NULL);
+
+        if (-1 == unlinkat(g->piddir_fd, g->pid_base, 0)) {
+            syslog(LOG_DAEMON | LOG_WARNING, "Failed to delete the PID file %s: %m", g->pid_file);
+        }
+
+        close(g->pid_fd);
+        close(g->piddir_fd);
+    }
 }
 
 void free_globals(struct globals_t* g)
@@ -33,27 +50,14 @@ void free_globals(struct globals_t* g)
         close(g->socket);
     }
 
+    kill_pid_file(g);
+
     closelog();
 
-    if (g->pid_fd >= 0) {
-        assert(g->pid_file != NULL);
-        unlink(g->pid_file);
-        close(g->pid_fd);
-    }
-
-    if (g->bind_address) {
-        free(g->bind_address);
-    }
-
-    if (g->bind_port) {
-        free(g->bind_port);
-    }
-
-    if (g->pid_file) {
-        free(g->pid_file);
-    }
-
-    if (g->daemon_name) {
-        free(g->daemon_name);
-    }
+    free(g->bind_address);
+    free(g->bind_port);
+    free(g->pid_file);
+    free(g->daemon_name);
+    free(g->chroot_dir);
+    free(g->pid_base);
 }

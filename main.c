@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -26,31 +27,47 @@ static void cleanup(void)
     free_globals(&globals);
 }
 
-static void daemonize(struct globals_t* g)
+static void check_pid_file(struct globals_t* g)
 {
-    int res;
+    g->pid_fd = create_pid_file(g->pid_file);
+    if (g->pid_fd == -1) {
+        fprintf(stderr, "Error creating PID file %s\n", g->pid_file);
+        exit(EXIT_FAILURE);
+    }
 
-    res = drop_privs(g);
-    if (res != 0) {
+    if (g->pid_fd == -2) {
+        fprintf(stderr, "mysql-honeypotd is already running\n");
+        exit(EXIT_SUCCESS);
+    }
+}
+
+static void become_daemon(struct globals_t* g)
+{
+    int res = daemonize(g);
+    if (res != DAEMONIZE_OK) {
         switch (res) {
-            case DP_NO_UNPRIV_ACCOUNT:
+            case DAEMONIZE_UNPRIV:
                 fprintf(stderr, "ERROR: Failed to find an unprivileged account\n");
                 break;
 
-            case DP_GENERAL_FAILURE:
-            default:
+            case DAEMONIZE_CHROOT:
+                fprintf(stderr, "ERROR: Failed to chroot(%s): %s\n", globals.chroot_dir, strerror(errno));
+                break;
+
+            case DAEMONIZE_CHDIR:
+                fprintf(stderr, "ERROR: Failed to chdir(%s): %s\n", globals.chroot_dir, strerror(errno));
+                break;
+
+            case DAEMONIZE_DROP:
                 fprintf(stderr, "ERROR: Failed to drop privileges\n");
+                break;
+
+            case DAEMONIZE_DAEMON:
+                fprintf(stderr, "ERROR: Failed to daemonize: %s\n", strerror(errno));
                 break;
         }
 
         exit(EXIT_FAILURE);
-    }
-
-    if (!g->foreground) {
-        if (daemon(0, 0)) {
-            perror("daemon");
-            exit(EXIT_FAILURE);
-        }
     }
 }
 
@@ -121,19 +138,8 @@ int main(int argc, char** argv)
     init_globals(&globals);
     atexit(cleanup);
     parse_options(argc, argv, &globals);
-
-    globals.pid_fd = create_pid_file(globals.pid_file);
-    if (globals.pid_fd == -1) {
-        fprintf(stderr, "Error creating PID file %s\n", globals.pid_file);
-        return EXIT_FAILURE;
-    }
-
-    if (globals.pid_fd == -2) {
-        fprintf(stderr, "mysql-honeypotd is already running\n");
-        return EXIT_SUCCESS;
-    }
-
-    daemonize(&globals);
+    check_pid_file(&globals);
+    become_daemon(&globals);
     openlog(globals.daemon_name, option, LOG_DAEMON);
 
     if (write_pid(globals.pid_fd)) {

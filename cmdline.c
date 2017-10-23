@@ -1,11 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <getopt.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <grp.h>
 #include <limits.h>
+#include <libgen.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "globals.h"
 #include "cmdline.h"
 
@@ -15,6 +20,7 @@ static struct option long_options[] = {
     { "pid",       required_argument, NULL, 'P' },
     { "name",      required_argument, NULL, 'n' },
     { "user",      required_argument, NULL, 'u' },
+    { "chroot",    required_argument, NULL, 'c' },
     { "group",     required_argument, NULL, 'g' },
     { "help",      no_argument,       NULL, 'h' },
     { "version",   no_argument,       NULL, 'v' }
@@ -39,6 +45,7 @@ static void usage()
         "                        (default: daemon or nobody)\n"
         "  -g, --group GROUP     drop privileges and switch to this GROUP\n"
         "                        (default: daemon or nogroup)\n"
+        "  -c, --chroot DIR      chroot() into the specified DIR\n"
         "  -f, --foreground      do not daemonize\n"
         "  -h, --help            display this help and exit\n"
         "  -v, --version         output version information and exit\n\n"
@@ -62,45 +69,98 @@ static void version()
     exit(0);
 }
 
+static void set_defaults(struct globals_t* g)
+{
+    if (!g->bind_address) {
+        g->bind_address = strdup("0.0.0.0");
+    }
+
+    if (!g->bind_port) {
+        g->bind_port = strdup("3306");
+    }
+
+    if (!g->daemon_name) {
+        g->daemon_name = strdup("mysql-honeypotd");
+    }
+
+    if (!g->pid_file) {
+        g->pid_file = strdup("/run/mysql-honeypotd/mysql-honeypotd.pid");
+    }
+}
+
+static void resolve_pid_file(struct globals_t* g)
+{
+    if (g->pid_file) {
+        if (g->pid_file[0] != '/') {
+            char buf[PATH_MAX+1];
+            char* cwd    = getcwd(buf, PATH_MAX + 1);
+            char* newbuf = NULL;
+
+            if (cwd) {
+                size_t cwd_len = strlen(cwd);
+                size_t pid_len = strlen(g->pid_file);
+                newbuf         = calloc(cwd_len + pid_len + 2, 1);
+                if (newbuf) {
+                    memcpy(newbuf, cwd, cwd_len);
+                    newbuf[cwd_len] = '/';
+                    memcpy(newbuf + cwd_len + 1, g->pid_file, pid_len);
+                }
+            }
+
+            free(g->pid_file);
+            g->pid_file = newbuf;
+        }
+
+        {
+            int e;
+            char* pid_dir = strdup(g->pid_file);
+            char* pid_fil = strdup(g->pid_file);
+            char* dir     = dirname(pid_dir);
+            char* file    = basename(pid_fil);
+            g->pid_base   = strdup(file);
+            g->piddir_fd  = open(dir, O_DIRECTORY);
+            e             = errno;
+
+            free(pid_dir);
+            free(pid_fil);
+
+            if (g->piddir_fd == -1) {
+                fprintf(stderr, "ERROR: Failed to open directory %s: %s\n", dir, strerror(e));
+                free(g->pid_file);
+                g->pid_file = NULL;
+                return;
+            }
+        }
+    }
+}
+
 void parse_options(int argc, char** argv, struct globals_t* g)
 {
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "b:p:P:n:u:g:fhv", long_options, &option_index);
+        int c = getopt_long(argc, argv, "b:p:P:n:u:g:c:fhv", long_options, &option_index);
         if (-1 == c) {
             break;
         }
 
         switch (c) {
             case 'b':
-                if (g->bind_address) {
-                    free(g->bind_address);
-                }
-
+                free(g->bind_address);
                 g->bind_address = strdup(optarg);
                 break;
 
             case 'p':
-                if (g->bind_port) {
-                    free(g->bind_port);
-                }
-
+                free(g->bind_port);
                 g->bind_port = strdup(optarg);
                 break;
 
             case 'P':
-                if (g->pid_file) {
-                    free(g->pid_file);
-                }
-
+                free(g->pid_file);
                 g->pid_file = strdup(optarg);
                 break;
 
             case 'n':
-                if (g->daemon_name) {
-                    free(g->daemon_name);
-                }
-
+                free(g->daemon_name);
                 g->daemon_name = strdup(optarg);
                 break;
 
@@ -138,6 +198,11 @@ void parse_options(int argc, char** argv, struct globals_t* g)
                 break;
             }
 
+            case 'c':
+                free(g->chroot_dir);
+                g->chroot_dir = strdup(optarg);
+                break;
+
             case 'h':
                 usage();
                 /* unreachable */
@@ -159,40 +224,8 @@ void parse_options(int argc, char** argv, struct globals_t* g)
         ++optind;
     }
 
-    if (!g->bind_address) {
-        g->bind_address = strdup("0.0.0.0");
-    }
-
-    if (!g->bind_port) {
-        g->bind_port = strdup("3306");
-    }
-
-    if (!g->daemon_name) {
-        g->daemon_name = strdup("mysql-honeypotd");
-    }
-
-    if (!g->pid_file) {
-        g->pid_file = strdup("/run/mysql-honeypotd/mysql-honeypotd.pid");
-    }
-    else if (g->pid_file[0] != '/') {
-        char buf[PATH_MAX+1];
-        char* cwd    = getcwd(buf, PATH_MAX + 1);
-        char* newbuf = NULL;
-
-        if (cwd) {
-            size_t cwd_len = strlen(cwd);
-            size_t pid_len = strlen(g->pid_file);
-            newbuf         = calloc(cwd_len + pid_len + 2, 1);
-            if (newbuf) {
-                memcpy(newbuf, cwd, cwd_len);
-                newbuf[cwd_len] = '/';
-                memcpy(newbuf + cwd_len + 1, g->pid_file, pid_len);
-            }
-        }
-
-        free(g->pid_file);
-        g->pid_file = newbuf;
-    }
+    set_defaults(g);
+    resolve_pid_file(g);
 
     if (!g->bind_address || !g->bind_port || !g->daemon_name || !g->pid_file) {
         exit(1);
