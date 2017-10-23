@@ -210,7 +210,7 @@ void get_ip_port(const struct sockaddr* addr, char* ipstr, uint16_t* port)
     }
     else {
         /* Should not happen */
-        *ipstr = NULL;
+        *ipstr = '\0';
         *port  = 0;
         assert(0);
     }
