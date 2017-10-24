@@ -1,6 +1,7 @@
 # mysql-honeypotd
 
 [![Build Status](https://travis-ci.org/sjinks/mysql-honeypotd.svg?branch=master)](https://travis-ci.org/sjinks/mysql-honeypotd)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/14112/badge.svg)](https://scan.coverity.com/projects/14112)
 
 Low interaction MySQL honeypot written in C
 
