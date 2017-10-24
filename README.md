@@ -1,5 +1,7 @@
 # mysql-honeypotd
 
+[![Build Status](https://travis-ci.org/sjinks/mysql-honeypotd.svg?branch=master)](https://travis-ci.org/sjinks/mysql-honeypotd)
+
 Low interaction MySQL honeypot written in C
 
 ## Dependencies
@@ -8,26 +10,25 @@ Low interaction MySQL honeypot written in C
 
 ## Usage
 
-```
-Usage: mysql-honeypotd [options]...
-Low-interaction MySQL honeypot
+`mysql-honeypotd [options]...`
 
 Mandatory arguments to long options are mandatory for short options too.
-  -b, --address ADDRESS the IP address to bind to (default: 0.0.0.0)
-  -p, --port PORT       the port to bind to (default: 3306)
-  -P, --pid FILE        the PID file
-                        (default: /run/mysql-honeypotd/mysql-honeypotd.pid)
-  -n, --name NAME       the name of the daemon for syslog
-                        (default: mysql-honeypotd)
-  -u, --user USER       drop privileges and switch to this USER
-                        (default: daemon or nobody)
-  -g, --group GROUP     drop privileges and switch to this GROUP
-                        (default: daemon or nogroup)
-  -f, --foreground      do not daemonize
-  -h, --help            display this help and exit
-  -v, --version         output version information and exit
 
-```
+  * `-b`, `--address ADDRESS` the IP address to bind to (default: 0.0.0.0)
+  * `-p`, `--port PORT`       the port to bind to (default: 3306)
+  * `-P`, `--pid FILE`        the PID file (default: `/run/mysql-honeypotd/mysql-honeypotd.pid`)
+  * `-n`, `--name NAME`       the name of the daemon for syslog (default: `mysql-honeypotd`)
+  * `-u`, `--user USER`       drop privileges and switch to this USER (default: `daemon` or `nobody`)
+  * `-g`, `--group GROUP`     drop privileges and switch to this GROUP (default: `daemon` or `nogroup`)
+  * `-c`, `--chroot DIR`      chroot() into the specified DIR
+  * `-f`, `--foreground`      do not daemonize
+  * `-h`, `--help`            display this help and exit
+  * `-v`, `--version`         output version information and exit
+
+**Notes:**
+  1. `--user`, `--group`, and `--chroot` options are honored only if mysql-honeypotd is run as `root`
+  2. PID file can be outside of chroot
+  3. When using `--name` and/or `--group`, please make sure that the PID file can be deleted by the target user
 
 ## Sample output
 
