@@ -1,0 +1,16 @@
+check process mysql-honeypotd with pidfile /run/mysql-honeypotd/mysql-honeypotd.pid
+	group system
+	group mysql-honeypotd
+	start program = "/etc/init.d/mysql-honeypotd start"
+	stop program  = "/etc/init.d/mysql-honeypotd start"
+	if 5 restarts within 5 cycles then timeout
+	depends on mysql-honeypotd_bin
+	depends on mysql-honeypotd_rc
+
+check file mysql-honeypotd_bin with path /usr/sbin/mysql-honeypotd
+	group mysql-honeypotd
+	include /etc/monit/templates/rootbin
+
+check file mysql-honeypotd_rc with path /etc/init.d/mysql-honeypotd
+	group mysql-honeypotd
+	include /etc/monit/templates/rootbin

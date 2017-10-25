@@ -1,0 +1,33 @@
+#!/bin/sh
+
+set -e
+
+# summary of how this script can be called:
+#        * <postinst> `configure' <most-recently-configured-version>
+#        * <old-postinst> `abort-upgrade' <new version>
+#        * <conflictor's-postinst> `abort-remove' `in-favour' <package>
+#          <new-version>
+#        * <postinst> `abort-remove'
+#        * <deconfigured's-postinst> `abort-deconfigure' `in-favour'
+#          <failed-install-package> <version> `removing'
+#          <conflicting-package> <version>
+
+
+case "$1" in
+	configure)
+		addgroup --system mysqlhoneypotd || true
+		adduser --system --home /nonexistent --no-create-home --disabled-password --ingroup mysqlhoneypotd mysqlhoneypotd
+	;;
+
+	abort-upgrade|abort-remove|abort-deconfigure)
+	;;
+
+	*)
+		echo "postinst called with unknown argument \`$1'" >&2
+		exit 1
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0

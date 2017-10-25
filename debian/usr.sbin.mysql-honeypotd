@@ -1,0 +1,20 @@
+#include <tunables/global>
+
+/usr/sbin/mysql-honeypotd {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+
+  capability setgid,
+  capability setuid,
+  capability sys_chroot,
+
+  network tcp,
+
+  /run/mysql-honeypotd/ r,
+  /run/mysql-honeypotd/mysql-honeypotd.pid rwk,
+  /usr/sbin/mysql-honeypotd mr,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/usr.sbin.mysql-honeypotd>
+
+}

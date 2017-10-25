@@ -1,0 +1,2 @@
+mysql-honeypotd usr/sbin
+debian/usr.sbin.mysql-honeypotd etc/apparmor.d

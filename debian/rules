@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+
+CFLAGS += -O2 -g3 -std=c99 -Wall -Wextra -fvisibility=hidden -fno-strict-aliasing -Wno-unused-parameter
+CPPFLAGS += -D_DEFAULT_SOURCE
+
+%:
+	dh $@
+
+override_dh_install:
+	dh_apparmor --profile-name=usr.sbin.mysql-honeypotd -p mysql-honeypotd
+	dh_install
+
+override_dh_auto_build:
+	make CFLAGS="$(CFLAGS)"
+
+override_dh_strip:
+	dh_strip -s --dbg-package=mysql-honeypotd-dbg

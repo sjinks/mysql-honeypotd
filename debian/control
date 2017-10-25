@@ -1,0 +1,25 @@
+Source: mysql-honeypotd
+Section: net
+Priority: optional
+Maintainer: Volodymyr Kolesnykov <volodymyr@wildwolf.name>
+Build-Depends: debhelper (>= 10), libev-dev, dh-apparmor
+Standards-Version: 3.9.8
+Vcs-Git: https://github.com/sjinks/mysql-honeypotd.git
+
+Package: mysql-honeypotd
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, lsb-base (>= 3.2-14), adduser, initscripts (>= 2.88dsf-13.3)
+Suggests: fail2ban, apparmor
+Description: Low-interaction honeypot for MySQL
+ ssh-honeypotd is a daemon that simulates a MySQL server
+ and logs every attempt to log in.
+
+Package: mysql-honeypotd-dbg
+Depends: ${misc:Depends}, mysql-honeypotd (= ${binary:Version})
+Recommends: gdb
+Section: debug
+Priority: extra
+Architecture: any
+Description: Debug symbols for mysql-honeypotd
+ ssh-honeypotd is a daemon that simulates a MySQL server
+ and logs every attempt to log in.
