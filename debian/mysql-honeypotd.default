@@ -1,3 +1,9 @@
+# Set to 1 to enable the honeypot
+ENABLED=0
+
+# If you are running MySQL on this machine, you will probably need to tweak the IP address
+# in -b option (say, -b ip_of_the_external_interface)
 DAEMON_ARGS="-p 3306 -b 0.0.0.0"
+
 DAEMON_USER=mysqlhoneypotd
 DAEMON_GROUP=mysqlhoneypotd
