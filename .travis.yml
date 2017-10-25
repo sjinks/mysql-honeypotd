@@ -17,6 +17,7 @@ addons:
     - dh-apparmor
     - devscripts
     - debhelper
+    - fakeroot
 
 compiler:
   - gcc
