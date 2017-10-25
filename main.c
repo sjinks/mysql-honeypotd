@@ -91,13 +91,13 @@ static int main_loop(struct globals_t* g)
         sin.sin_family = AF_INET6;
     }
     else {
-        syslog(LOG_DAEMON | LOG_CRIT, "'%s' is not a valid address\n", g->bind_address);
+        syslog(LOG_DAEMON | LOG_CRIT, "ERROR: '%s' is not a valid address\n", g->bind_address);
         return EXIT_FAILURE;
     }
 
     g->socket = socket(AF_INET, SOCK_STREAM, 0);
     if (-1 == g->socket) {
-        syslog(LOG_DAEMON | LOG_CRIT, "Failed to create socket: %m");
+        syslog(LOG_DAEMON | LOG_CRIT, "ERROR: Failed to create socket: %m");
         return EXIT_FAILURE;
     }
 
@@ -145,7 +145,7 @@ int main(int argc, char** argv)
     become_daemon(&globals);
 
     if (write_pid(globals.pid_fd)) {
-        syslog(LOG_DAEMON | LOG_CRIT, "Failed to write to the PID file: %m");
+        syslog(LOG_DAEMON | LOG_CRIT, "ERROR: Failed to write to the PID file: %m");
         return EXIT_FAILURE;
     }
 

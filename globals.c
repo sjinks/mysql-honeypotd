@@ -31,7 +31,7 @@ static void kill_pid_file(struct globals_t* g)
         assert(g->pid_base != NULL);
 
         if (-1 == unlinkat(g->piddir_fd, g->pid_base, 0)) {
-            syslog(LOG_DAEMON | LOG_WARNING, "Failed to delete the PID file %s: %m", g->pid_file);
+            syslog(LOG_DAEMON | LOG_WARNING, "WARNING: Failed to delete the PID file %s: %m", g->pid_file);
         }
 
         close(g->pid_fd);
