@@ -13,6 +13,10 @@ addons:
     packages:
     - valgrind
     - libev-dev
+    - git-buildpackage
+    - dh-apparmor
+    - devscripts
+    - debhelper
 
 compiler:
   - gcc
@@ -20,3 +24,5 @@ compiler:
 
 script:
   - make
+  - gbp buildpackage --git-verbose --git-notify=off --git-verbose --git-ignore-branch --git-notify=off --git-force-create -i -us -uc -S -sa
+  - gbp buildpackage --git-verbose --git-notify=off --git-verbose --git-ignore-branch --git-notify=off --git-force-create -i -us -uc -b
