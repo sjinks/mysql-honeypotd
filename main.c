@@ -46,17 +46,18 @@ static void become_daemon(struct globals_t* g)
 {
     int res = daemonize(g);
     if (res != DAEMONIZE_OK) {
+        int err = errno;
         switch (res) {
             case DAEMONIZE_UNPRIV:
                 fprintf(stderr, "ERROR: Failed to find an unprivileged account\n");
                 break;
 
             case DAEMONIZE_CHROOT:
-                fprintf(stderr, "ERROR: Failed to chroot(%s): %s\n", globals.chroot_dir, strerror(errno));
+                fprintf(stderr, "ERROR: Failed to chroot(%s): %s\n", globals.chroot_dir, strerror(err));
                 break;
 
             case DAEMONIZE_CHDIR:
-                fprintf(stderr, "ERROR: Failed to chdir(%s): %s\n", globals.chroot_dir, strerror(errno));
+                fprintf(stderr, "ERROR: Failed to chdir(%s): %s\n", globals.chroot_dir, strerror(err));
                 break;
 
             case DAEMONIZE_DROP:
@@ -64,7 +65,7 @@ static void become_daemon(struct globals_t* g)
                 break;
 
             case DAEMONIZE_DAEMON:
-                fprintf(stderr, "ERROR: Failed to daemonize: %s\n", strerror(errno));
+                fprintf(stderr, "ERROR: Failed to daemonize: %s\n", strerror(err));
                 break;
         }
 
@@ -90,13 +91,13 @@ static int main_loop(struct globals_t* g)
         sin.sin_family = AF_INET6;
     }
     else {
-        fprintf(stderr, "'%s' is not a valid address\n", g->bind_address);
+        syslog(LOG_DAEMON | LOG_CRIT, "'%s' is not a valid address\n", g->bind_address);
         return EXIT_FAILURE;
     }
 
     g->socket = socket(AF_INET, SOCK_STREAM, 0);
     if (-1 == g->socket) {
-        perror("socket");
+        syslog(LOG_DAEMON | LOG_CRIT, "Failed to create socket: %m");
         return EXIT_FAILURE;
     }
 
@@ -105,13 +106,13 @@ static int main_loop(struct globals_t* g)
 
     res = bind(g->socket, (struct sockaddr*)&sin, sizeof(sin));
     if (-1 == res) {
-        perror("bind");
+        syslog(LOG_DAEMON | LOG_CRIT, "ERROR: failed to bind(): %m");
         return EXIT_FAILURE;
     }
 
     res = listen(g->socket, 1024);
     if (-1 == res) {
-        perror("listen");
+        syslog(LOG_DAEMON | LOG_CRIT, "ERROR: failed to listen(): %m");
         return EXIT_FAILURE;
     }
 
@@ -139,12 +140,12 @@ int main(int argc, char** argv)
     init_globals(&globals);
     atexit(cleanup);
     parse_options(argc, argv, &globals);
+    openlog(globals.daemon_name, option, LOG_DAEMON);
     check_pid_file(&globals);
     become_daemon(&globals);
-    openlog(globals.daemon_name, option, LOG_DAEMON);
 
     if (write_pid(globals.pid_fd)) {
-        syslog(LOG_CRIT, "Failed to write to the PID file: %m");
+        syslog(LOG_DAEMON | LOG_CRIT, "Failed to write to the PID file: %m");
         return EXIT_FAILURE;
     }
 
