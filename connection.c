@@ -102,8 +102,14 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
             }
 
             len = sizeof(sa);
-            getsockname(sock, &sa, &len);
-            get_ip_port(&sa, conn->my_ip, &conn->my_port);
+            if (-1 != getsockname(sock, &sa, &len)) {
+                get_ip_port(&sa, conn->my_ip, &conn->my_port);
+            }
+            else {
+                syslog(LOG_DAEMON | LOG_WARNING, "WARNING: getsockname() failed: %m");
+                conn->my_port = atoi(globals.bind_port);
+                memcpy(conn->my_ip, "0.0.0.0", sizeof("0.0.0.0"));
+            }
 
             syslog(
                 LOG_DAEMON | LOG_INFO,
