@@ -98,7 +98,10 @@ static void create_socket(struct globals_t* g)
         exit(EXIT_FAILURE);
     }
 
-    setsockopt(g->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
+    if (-1 == setsockopt(g->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int))) {
+        fprintf(stderr, "WARNING: setsockopt(SO_REUSEADDR) failed: %s", strerror(errno));
+    }
+
     if (-1 == make_nonblocking(g->socket)) {
         fprintf(stderr, "ERROR: Failed to make the socket non-blocking: %s", strerror(errno));
         exit(EXIT_FAILURE);
