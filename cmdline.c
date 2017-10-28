@@ -112,6 +112,12 @@ static void resolve_pid_file(struct globals_t* g)
                     newbuf[cwd_len] = '/';
                     memcpy(newbuf + cwd_len + 1, g->pid_file, pid_len);
                 }
+                else {
+                    fprintf(stderr, "ERROR: calloc(): out of memory\n");
+                    free(g->pid_file);
+                    g->pid_file = NULL;
+                    return;
+                }
             }
 
             free(g->pid_file);
