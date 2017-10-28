@@ -85,7 +85,11 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
     if (revents & EV_READ) {
         int sock = accept(w->fd, &sa, &len);
         if (sock != -1) {
-            make_nonblocking(sock);
+            if (-1 == make_nonblocking(sock)) {
+                syslog(LOG_DAEMON | LOG_WARNING, "new_connection(): failed to make the accept()'ed socket non-blocking: %m");
+                close(sock);
+                return;
+            }
 
             struct connection_t* conn = (struct connection_t*)calloc(1, sizeof(struct connection_t));
             conn->state = NEW_CONN;
