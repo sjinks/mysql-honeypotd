@@ -94,28 +94,28 @@ static void create_socket(struct globals_t* g)
 
     g->socket = socket(AF_INET, SOCK_STREAM, 0);
     if (-1 == g->socket) {
-        fprintf(stderr, "ERROR: Failed to create socket: %s", strerror(errno));
+        fprintf(stderr, "ERROR: Failed to create socket: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     if (-1 == setsockopt(g->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int))) {
-        fprintf(stderr, "WARNING: setsockopt(SO_REUSEADDR) failed: %s", strerror(errno));
+        fprintf(stderr, "WARNING: setsockopt(SO_REUSEADDR) failed: %s\n", strerror(errno));
     }
 
     if (-1 == make_nonblocking(g->socket)) {
-        fprintf(stderr, "ERROR: Failed to make the socket non-blocking: %s", strerror(errno));
+        fprintf(stderr, "ERROR: Failed to make the socket non-blocking: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     res = bind(g->socket, (struct sockaddr*)&sin, sizeof(sin));
     if (-1 == res) {
-        fprintf(stderr, "ERROR: failed to bind(): %s", strerror(errno));
+        fprintf(stderr, "ERROR: failed to bind(): %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     res = listen(g->socket, 1024);
     if (-1 == res) {
-        fprintf(stderr, "ERROR: failed to listen(): %s", strerror(errno));
+        fprintf(stderr, "ERROR: failed to listen(): %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 }
