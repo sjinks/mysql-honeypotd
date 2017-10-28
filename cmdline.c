@@ -103,7 +103,19 @@ static void resolve_pid_file(struct globals_t* g)
             char* cwd    = getcwd(buf, PATH_MAX + 1);
             char* newbuf = NULL;
 
-            if (cwd) {
+            /* If the current directory is not below the root directory of
+             * the current process (e.g., because the process set a new
+             * filesystem root using chroot(2) without changing its current
+             * directory into the new root), then, since Linux 2.6.36,
+             * the returned path will be prefixed with the string
+             * "(unreachable)". Such behavior can also be caused by
+             * an unprivileged user by changing the current directory into
+             * another mount namespace. When dealing with paths from
+             * untrusted sources, callers of these functions should consider
+             * checking whether the returned path starts with '/' or '('
+             * to avoid misinterpreting an unreachable path as a relative path.
+             */
+            if (cwd && cwd[0] == '/') {
                 size_t cwd_len = strlen(cwd);
                 size_t pid_len = strlen(g->pid_file);
                 newbuf         = calloc(cwd_len + pid_len + 2, 1);
@@ -118,10 +130,16 @@ static void resolve_pid_file(struct globals_t* g)
                     g->pid_file = NULL;
                     return;
                 }
-            }
 
-            free(g->pid_file);
-            g->pid_file = newbuf;
+                free(g->pid_file);
+                g->pid_file = newbuf;
+            }
+            else {
+                fprintf(stderr, "ERROR: Failed to get the current directory: %s\n", strerror(errno));
+                free(g->pid_file);
+                g->pid_file = NULL;
+                return;
+            }
         }
 
         {
