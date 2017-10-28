@@ -99,7 +99,10 @@ static void create_socket(struct globals_t* g)
     }
 
     setsockopt(g->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
-    make_nonblocking(g->socket);
+    if (-1 == make_nonblocking(g->socket)) {
+        fprintf(stderr, "ERROR: Failed to make the socket non-blocking: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
     res = bind(g->socket, (struct sockaddr*)&sin, sizeof(sin));
     if (-1 == res) {
