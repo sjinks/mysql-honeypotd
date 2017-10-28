@@ -79,6 +79,7 @@ static void create_socket(struct globals_t* g)
     struct sockaddr_in sin;
     int res;
 
+    memset(&sin, 0, sizeof(sin));
     sin.sin_port = htons((uint16_t)atoi(g->bind_port));
     if (1 == inet_pton(AF_INET, g->bind_address, &sin.sin_addr)) {
         sin.sin_family = AF_INET;
