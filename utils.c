@@ -97,7 +97,7 @@ char* create_auth_switch_request(unsigned char seq)
     result[0x03] = seq;
 
     for (int i=0; i<20; ++i) {
-        result[0x2B + i] = rand();
+        result[0x1B + i] = rand();
     }
 
     return result;
