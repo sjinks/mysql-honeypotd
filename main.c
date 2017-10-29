@@ -32,7 +32,7 @@ static void check_pid_file(struct globals_t* g)
 {
     g->pid_fd = create_pid_file(g->pid_file);
     if (g->pid_fd == -1) {
-        fprintf(stderr, "Error creating PID file %s\n", g->pid_file);
+        fprintf(stderr, "Error creating PID file %s: %s\n", g->pid_file, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
