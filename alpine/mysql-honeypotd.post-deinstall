@@ -1,0 +1,4 @@
+#!/bin/sh
+
+deluser mysqlhoneypotd > /dev/null
+exit 0

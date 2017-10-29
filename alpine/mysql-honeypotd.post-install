@@ -1,0 +1,6 @@
+#!/bin/sh
+
+addgroup -S mysqlhoneypotd 2>/dev/null
+adduser -S -D -H -s /bin/false -G mysqlhoneypotd -g mysqlhoneypotd mysqlhoneypotd 2>/dev/null
+
+exit 0

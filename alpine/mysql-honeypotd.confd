@@ -1,0 +1,8 @@
+#
+# Specify daemon options here.
+#
+
+ENABLED=0
+DAEMON_ARGS="-p 3306 -b 0.0.0.0"
+DAEMON_USER=mysqlhoneypotd
+DAEMON_GROUP=mysqlhoneypotd

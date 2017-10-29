@@ -1,0 +1,31 @@
+#!/sbin/openrc-run
+
+name=mysql-honeypotd
+command="/usr/sbin/$name"
+pidfile="/run/$name/$name.pid"
+
+if [ -z "$DAEMON_USER" ]; then
+	DAEMON_USER=daemon
+fi
+
+if [ -z "$DAEMON_GROUP" ]; then
+	DAEMON_GROUP=daemon
+fi
+
+command_args="$DAEMON_ARGS -u $DAEMON_USER -g $DAEMON_GROUP -P ${pidfile}"
+
+depend() {
+	need net
+	after firewall
+}
+
+start_pre() {
+	ebegin
+	checkpath --directory --owner root:$DAEMON_GROUP ${pidfile%/*}
+	if [ "$ENABLED" = "0" ]; then
+		echo "$name: disabled, see /etc/conf.d/$name"
+		eend 1;
+	fi;
+
+	eend $?
+}
