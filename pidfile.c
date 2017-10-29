@@ -17,6 +17,7 @@ static int lock_file(int fd, short int type, short int whence, off_t start, off_
     fl.l_whence = whence;
     fl.l_start  = start;
     fl.l_len    = len;
+    fl.l_pid    = 0;
 
 #ifdef F_OFD_SETLK
     return fcntl(fd, F_OFD_SETLK, &fl);
@@ -33,18 +34,21 @@ int create_pid_file(const char* path)
     }
 
     if (lock_file(fd, F_WRLCK, SEEK_SET, 0, 0) == -1) {
-        if (errno  == EAGAIN || errno == EACCES) {
+        int e = errno;
+        close(fd);
+        errno = e;
+        if (e == EAGAIN || e == EACCES) {
             /* PID file locked - another instance is running */
-            close(fd);
             return -2;
         }
 
-        close(fd);
         return -1;
     }
 
     if (ftruncate(fd, 0) == -1) {
+        int e = errno;
         close(fd);
+        errno = e;
         return -1;
     }
 
