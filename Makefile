@@ -5,6 +5,7 @@ SOURCES = \
 	globals.c \
 	connection.c \
 	utils.c \
+	protocol.c \
 	dfa.c \
 	pidfile.c \
 	cmdline.c \

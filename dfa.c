@@ -5,6 +5,7 @@
 #include "dfa.h"
 #include "connection_p.h"
 #include "globals.h"
+#include "protocol.h"
 #include "utils.h"
 
 static int out_of_order(struct connection_t* conn, int mask)
