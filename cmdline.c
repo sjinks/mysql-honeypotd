@@ -20,8 +20,9 @@ static struct option long_options[] = {
     { "pid",       required_argument, NULL, 'P' },
     { "name",      required_argument, NULL, 'n' },
     { "user",      required_argument, NULL, 'u' },
-    { "chroot",    required_argument, NULL, 'c' },
     { "group",     required_argument, NULL, 'g' },
+    { "chroot",    required_argument, NULL, 'c' },
+    { "setver",    required_argument, NULL, 's' },
     { "help",      no_argument,       NULL, 'h' },
     { "version",   no_argument,       NULL, 'v' }
 };
@@ -46,6 +47,8 @@ static void usage()
         "  -g, --group GROUP     drop privileges and switch to this GROUP\n"
         "                        (default: daemon or nogroup)\n"
         "  -c, --chroot DIR      chroot() into the specified DIR\n"
+        "  -s, --setver VERSION  report this MySQL server version\n"
+        "                        (default: 5.7.19)\n"
         "  -f, --foreground      do not daemonize\n"
         "  -h, --help            display this help and exit\n"
         "  -v, --version         output version information and exit\n\n"
@@ -92,6 +95,10 @@ static void set_defaults(struct globals_t* g)
 
     if (!g->pid_file) {
         g->pid_file = strdup("/run/mysql-honeypotd/mysql-honeypotd.pid");
+    }
+
+    if (!g->server_ver) {
+        g->server_ver = strdup("5.7.19");
     }
 }
 
@@ -170,7 +177,7 @@ void parse_options(int argc, char** argv, struct globals_t* g)
 {
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "b:p:P:n:u:g:c:fhv", long_options, &option_index);
+        int c = getopt_long(argc, argv, "b:p:P:n:u:g:c:s:fhv", long_options, &option_index);
         if (-1 == c) {
             break;
         }
@@ -233,6 +240,11 @@ void parse_options(int argc, char** argv, struct globals_t* g)
             case 'c':
                 free(g->chroot_dir);
                 g->chroot_dir = strdup(optarg);
+                break;
+
+            case 's':
+                free(g->server_ver);
+                g->server_ver = strndup(optarg, 63);
                 break;
 
             case 'h':

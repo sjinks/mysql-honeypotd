@@ -60,4 +60,5 @@ void free_globals(struct globals_t* g)
     free(g->daemon_name);
     free(g->chroot_dir);
     free(g->pid_base);
+    free(g->server_ver);
 }
