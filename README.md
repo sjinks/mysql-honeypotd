@@ -19,9 +19,10 @@ Mandatory arguments to long options are mandatory for short options too.
   * `-p`, `--port PORT`       the port to bind to (default: 3306)
   * `-P`, `--pid FILE`        the PID file (default: `/run/mysql-honeypotd/mysql-honeypotd.pid`)
   * `-n`, `--name NAME`       the name of the daemon for syslog (default: `mysql-honeypotd`)
-  * `-u`, `--user USER`       drop privileges and switch to this USER (default: `daemon` or `nobody`)
-  * `-g`, `--group GROUP`     drop privileges and switch to this GROUP (default: `daemon` or `nogroup`)
-  * `-c`, `--chroot DIR`      chroot() into the specified DIR
+  * `-u`, `--user USER`       drop privileges and switch to this `USER` (default: `daemon` or `nobody`)
+  * `-g`, `--group GROUP`     drop privileges and switch to this `GROUP` (default: `daemon` or `nogroup`)
+  * `-c`, `--chroot DIR`      chroot() into the specified `DIR`
+  * `-s`, `--setver VER`      set MySQL server version to `VER` (default: 5.7.19)
   * `-f`, `--foreground`      do not daemonize
   * `-h`, `--help`            display this help and exit
   * `-v`, `--version`         output version information and exit

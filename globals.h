@@ -12,6 +12,7 @@ struct globals_t {
     char* daemon_name;
     char* chroot_dir;
     char* pid_base;
+    char* server_ver;
     int socket;
     int pid_fd;
     int piddir_fd;

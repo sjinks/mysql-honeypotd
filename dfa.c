@@ -29,7 +29,7 @@ static int out_of_order(struct connection_t* conn, int mask)
 
 int handle_new_connection(struct connection_t* conn, int mask)
 {
-    conn->buffer = create_server_greeting(++globals.thread_id);
+    conn->buffer = create_server_greeting(++globals.thread_id, globals.server_ver);
     conn->size   = (unsigned int)(conn->buffer[0]) + 4;
     conn->pos    = 0;
     conn->state  = WRITING_GREETING;

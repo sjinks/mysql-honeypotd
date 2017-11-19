@@ -4,7 +4,7 @@
 #include <string.h>
 #include "protocol.h"
 
-char* create_server_greeting(uint32_t thread_id)
+char* create_server_greeting(uint32_t thread_id, const char* server_ver)
 {
     /* Server Greeting:
      *
@@ -23,25 +23,36 @@ char* create_server_greeting(uint32_t thread_id)
      * 0x2B 0x0D    Salt (12 random bytes + \0)
      * 0x38 0x16    Authentication plugin ('mysql_native_password\0')
      */
-    const char tpl[0x4E] = {
-    /*  00    01    02    03    04    05    06    07    08    09    0A    0B    0C    0D    0E    0F   */
-        0x4A, 0x00, 0x00, 0x00, 0x0A, '5',  '.',  '7',  '.',  '1',  '9',  0x00, 0xFF, 0xFF, 0xFF, 0xFF,
-        0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0xFF, 0xF7, 0x21, 0x02, 0x00, 0xFF, 0x81,
-        0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 'm',  'y',  's',  'q',  'l',  '_',  'n',  'a',
-        't',  'i',  'v',  'e',  '_',  'p',  'a',  's',  's',  'w',  'o',  'r',  'd',  0x00
+    const char part1[3] = {
+        0x00, 0x00, 0x0A
     };
 
-    char* result = calloc(1, sizeof(tpl));
-    memcpy(result, tpl, sizeof(tpl));
-    memcpy(result + 0x0C, &thread_id, sizeof(thread_id));
+    const char part2[0x36] = {
+    /*  00    01    02    03    04    05    06    07    08    09    0A    0B    0C    0D    0E    0F   */
+        0x00, 0xFF, 0xF7, 0x21, 0x02, 0x00, 0xFF, 0x81, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
+        'm',  'y',  's',  'q',  'l',  '_',  'n',  'a',  't',  'i',  'v',  'e',  '_',  'p',  'a',  's',
+        's',  'w',  'o',  'r',  'd',  0x00
+    };
+
+    size_t ver_len   = strlen(server_ver) + 1;
+    size_t offset    = 2 /* payload_size */ + sizeof(part1) + ver_len;
+    size_t pkt_size  = 2 /* payload_size */ + sizeof(part1) + ver_len + 4 /* thread_id */ + 8 /* salt */ + sizeof(part2);
+    uint16_t pl_size = (uint16_t)(pkt_size - 4);
+    char* result     = calloc(1, pkt_size);
+
+    memcpy(result,                                   &pl_size,   sizeof(pl_size));
+    memcpy(result + sizeof(pl_size),                 part1,      sizeof(part1));
+    memcpy(result + sizeof(pl_size) + sizeof(part1), server_ver, ver_len);
+    memcpy(result + offset,                          &thread_id, sizeof(thread_id));
+    memcpy(result + offset + 4 + 8,                  part2,      sizeof(part2));
 
     for (int i=0; i<8; ++i) {
-        result[0x10 + i] = rand();
+        result[offset + 4 + i] = rand();
     }
 
     for (int i=0; i<12; ++i) {
-        result[0x2B + i] = rand();
+        result[offset + 12 + 0x13 + i] = rand();
     }
 
     return result;
