@@ -1,7 +1,7 @@
 # Contributor: Volodymyr Kolesnykov <volodymyr@wildwolf.name>
 # Maintainer: Volodymyr Kolesnykov <volodymyr@wildwolf.name>
 pkgname=mysql-honeypotd
-pkgver=0.2.1
+pkgver=0.3.0
 pkgrel=0
 pkgdesc="Low interaction MySQL honeypot"
 url="https://github.com/sjinks/mysql-honeypotd"
@@ -32,6 +32,6 @@ package() {
 	install -m644 -D "$srcdir"/$pkgname.confd "$pkgdir"/etc/conf.d/$pkgname
 }
 
-sha512sums="dc977c4826346f66cde52dbe49f153fde7b981d296dbc95c903bf3a2cc734cbd395f62b91c6d7a55784b075e809c9c4e637a5f01a132e9447c672d0c65c94836  mysql-honeypotd-0.2.1.tar.gz
+sha512sums="6c5a41d330e628f6129ada9af4338c3cc16cab1b5feb072de0872c969c805ad195752d08560f7752e0586ef7f3843365a32b7456f46f5d9407a095e7b4d3db46  mysql-honeypotd-0.3.0.tar.gz
 15d171c28e8c51987f1cd0e0d7f089e4f61215ff1deecba8e2c91b65bb04ec06222b866a227ba130d0c0ec7647b18719f3a9e205d85185a0feb870fc52a55dde  mysql-honeypotd.confd
 5ee4e79fb414a90ca1a2c488e66bf9338179d43acd13e57793abc311e5be685ccd83de310d44d1ba424c71ac0c05b1ae57d208db98e52e17b5547a97db1f0485  mysql-honeypotd.initd"
