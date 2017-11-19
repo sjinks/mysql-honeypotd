@@ -71,7 +71,7 @@ __attribute__((noreturn))
 static void version()
 {
     printf(
-        "mysql-honeypotd 0.2.1\n"
+        "mysql-honeypotd 0.3\n"
         "Copyright (c) 2017, Volodymyr Kolesnykov <volodymyr@wildwolf.name>\n"
         "License: MIT <http://opensource.org/licenses/MIT>\n"
     );
