@@ -1,3 +1,9 @@
+mysql-honeypotd (0.3.0) xenial; urgency=low
+
+  * Added --setver option to customize reported server version
+
+ -- Volodymyr Kolesnykov <volodymyr@wildwolf.name>  Sun, 19 Nov 2017 22:15:00 +0200
+
 mysql-honeypotd (0.2.1) xenial; urgency=low
 
   * Various bug fixes
