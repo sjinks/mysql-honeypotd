@@ -16,7 +16,6 @@ void init_globals(struct globals_t* g)
 {
     memset(g, 0, sizeof(struct globals_t));
 
-    g->socket    = -1;
     g->pid_fd    = -1;
     g->piddir_fd = -1;
     g->loop      = EV_DEFAULT;
@@ -45,16 +44,26 @@ void free_globals(struct globals_t* g)
         ev_loop_destroy(g->loop);
     }
 
-    if (g->socket >= 0) {
-        shutdown(g->socket, SHUT_RDWR);
-        close(g->socket);
+    if (g->sockets) {
+        for (size_t i=0; i<g->nsockets; ++i) {
+            if (g->sockets[i] >= 0) {
+                shutdown(g->sockets[i], SHUT_RDWR);
+                close(g->sockets[i]);
+            }
+        }
+
+        free(g->sockets);
     }
 
     kill_pid_file(g);
 
     closelog();
 
-    free(g->bind_address);
+    for (size_t i=0; i<g->nsockets; ++i) {
+        free(g->bind_addresses[i]);
+    }
+
+    free(g->bind_addresses);
     free(g->bind_port);
     free(g->pid_file);
     free(g->daemon_name);

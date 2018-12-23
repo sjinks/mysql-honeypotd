@@ -6,14 +6,16 @@
 
 struct globals_t {
     struct ev_loop* loop;
-    char* bind_address;
+    char** bind_addresses;
     char* bind_port;
     char* pid_file;
     char* daemon_name;
     char* chroot_dir;
     char* pid_base;
     char* server_ver;
-    int socket;
+    int* sockets;
+    size_t nalloc;
+    size_t nsockets;
     int pid_fd;
     int piddir_fd;
     int foreground;
