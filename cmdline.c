@@ -38,7 +38,7 @@ static void usage()
         "Low-interaction MySQL honeypot\n\n"
         "Mandatory arguments to long options are mandatory for short options too.\n"
         "  -b, --address ADDRESS the IP address to bind to (default: 0.0.0.0)\n"
-        "                        (can be specified multiple times)"
+        "                        (can be specified multiple times)\n"
         "  -p, --port PORT       the port to bind to (default: 3306)\n"
         "  -P, --pid FILE        the PID file\n"
         "                        (default: /run/mysql-honeypotd/mysql-honeypotd.pid)\n"
