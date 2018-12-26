@@ -59,11 +59,14 @@ void free_globals(struct globals_t* g)
 
     closelog();
 
-    for (size_t i=0; i<g->nsockets; ++i) {
-        free(g->bind_addresses[i]);
+    if (g->bind_addresses) {
+        for (size_t i=0; i<g->nsockets; ++i) {
+            free(g->bind_addresses[i]);
+        }
+
+        free(g->bind_addresses);
     }
 
-    free(g->bind_addresses);
     free(g->bind_port);
     free(g->pid_file);
     free(g->daemon_name);
