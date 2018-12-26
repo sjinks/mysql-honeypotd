@@ -11,13 +11,13 @@ Low\-interaction MySQL honeypot
 Mandatory arguments to long options are mandatory for short options too.
 .HP
 \fB\-b\fR, \fB\-\-address\fR ADDRESS the IP address to bind to (default: 0.0.0.0)
+(can be specified multiple times)
 .TP
 \fB\-p\fR, \fB\-\-port\fR PORT
 the port to bind to (default: 3306)
 .TP
 \fB\-P\fR, \fB\-\-pid\fR FILE
 the PID file
-(default: \fI\,/run/mysql\-honeypotd/mysql\-honeypotd.pid\/\fP)
 .TP
 \fB\-n\fR, \fB\-\-name\fR NAME
 the name of the daemon for syslog
@@ -35,7 +35,7 @@ drop privileges and switch to this GROUP
 chroot() into the specified DIR
 .TP
 \fB\-f\fR, \fB\-\-foreground\fR
-do not daemonize
+do not daemonize (forced if no PID file specified)
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 display this help and exit
@@ -51,5 +51,5 @@ output version information and exit
 .P
 Please report bugs here: <https://github.com/sjinks/mysql\-honeypotd/issues>
 .SH COPYRIGHT
-Copyright \(co 2017, Volodymyr Kolesnykov <volodymyr@wildwolf.name>
+Copyright \(co 2017, 2018 Volodymyr Kolesnykov <volodymyr@wildwolf.name>
 License: MIT <http://opensource.org/licenses/MIT>

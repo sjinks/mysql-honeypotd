@@ -15,7 +15,7 @@ Low interaction MySQL honeypot written in C
 
 Mandatory arguments to long options are mandatory for short options too.
 
-  * `-b`, `--address ADDRESS` the IP address to bind to (default: 0.0.0.0)
+  * `-b`, `--address ADDRESS` the IP address to bind to (default: 0.0.0.0). Can be specified several times
   * `-p`, `--port PORT`       the port to bind to (default: 3306)
   * `-P`, `--pid FILE`        the PID file
   * `-n`, `--name NAME`       the name of the daemon for syslog (default: `mysql-honeypotd`)
