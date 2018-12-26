@@ -9,12 +9,15 @@ int make_nonblocking(int fd)
 {
     int flags = fcntl(fd, F_GETFL);
     if (flags != -1) {
+        if (flags & O_NONBLOCK) {
+            return 0;
+        }
+
         flags |= O_NONBLOCK;
         return fcntl(fd, F_SETFL, flags);
     }
 
     return -1;
-
 }
 
 int safe_accept(int fd, struct sockaddr* addr, socklen_t* addrlen)
