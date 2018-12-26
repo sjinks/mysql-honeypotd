@@ -30,15 +30,17 @@ static void cleanup(void)
 
 static void check_pid_file(struct globals_t* g)
 {
-    g->pid_fd = create_pid_file(g->pid_file);
-    if (g->pid_fd == -1) {
-        fprintf(stderr, "Error creating PID file %s: %s\n", g->pid_file, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+    if (g->pid_file) {
+        g->pid_fd = create_pid_file(g->pid_file);
+        if (g->pid_fd == -1) {
+            fprintf(stderr, "Error creating PID file %s: %s\n", g->pid_file, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
 
-    if (g->pid_fd == -2) {
-        fprintf(stderr, "mysql-honeypotd is already running\n");
-        exit(EXIT_SUCCESS);
+        if (g->pid_fd == -2) {
+            fprintf(stderr, "mysql-honeypotd is already running\n");
+            exit(EXIT_SUCCESS);
+        }
     }
 }
 
@@ -75,6 +77,7 @@ static void become_daemon(struct globals_t* g)
 
 static void create_socket(struct globals_t* g)
 {
+    size_t good = 0;
     const int on = 1;
     struct sockaddr_in sin;
     int res;
@@ -97,13 +100,13 @@ static void create_socket(struct globals_t* g)
         }
         else {
             fprintf(stderr, "ERROR: '%s' is not a valid address\n", g->bind_addresses[i]);
-            exit(EXIT_FAILURE);
+            continue;
         }
 
         g->sockets[i] = socket(AF_INET, SOCK_STREAM, 0);
         if (-1 == g->sockets[i]) {
             fprintf(stderr, "ERROR: Failed to create socket: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
+            continue;
         }
 
         if (-1 == setsockopt(g->sockets[i], SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int))) {
@@ -116,20 +119,33 @@ static void create_socket(struct globals_t* g)
 
         if (-1 == make_nonblocking(g->sockets[i])) {
             fprintf(stderr, "ERROR: Failed to make the socket non-blocking: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
+            close(g->sockets[i]);
+            g->sockets[i] = -1;
+            continue;
         }
 
         res = bind(g->sockets[i], (struct sockaddr*)&sin, sizeof(sin));
         if (-1 == res) {
             fprintf(stderr, "ERROR: failed to bind(): %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
+            close(g->sockets[i]);
+            g->sockets[i] = -1;
+            continue;
         }
 
         res = listen(g->sockets[i], 1024);
         if (-1 == res) {
             fprintf(stderr, "ERROR: failed to listen(): %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
+            close(g->sockets[i]);
+            g->sockets[i] = -1;
+            continue;
         }
+
+        ++good;
+    }
+
+    if (!good) {
+        fprintf(stderr, "ERROR: No listening sockets available\n");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -155,12 +171,16 @@ static int main_loop(struct globals_t* g)
 
     for (size_t i=0; i<g->nsockets; ++i) {
         ev_io_init(&accept_watchers[i], new_connection, g->sockets[i], EV_READ);
-        ev_io_start(g->loop, &accept_watchers[i]);
+        if (g->sockets[i] != -1) {
+            ev_io_start(g->loop, &accept_watchers[i]);
+        }
     }
 
     ev_run(g->loop, 0);
     for (size_t i=0; i<g->nsockets; ++i) {
-        ev_io_stop(g->loop, &accept_watchers[i]);
+        if (accept_watchers[i].fd != -1) {
+            ev_io_stop(g->loop, &accept_watchers[i]);
+        }
     }
 
     free(accept_watchers);
@@ -170,19 +190,21 @@ static int main_loop(struct globals_t* g)
 int main(int argc, char** argv)
 {
     int option = LOG_PID | LOG_CONS;
-#ifdef LOG_PERROR
-    option |= LOG_PERROR;
-#endif
 
     init_globals(&globals);
     atexit(cleanup);
     parse_options(argc, argv, &globals);
+
+#ifdef LOG_PERROR
+    option |= LOG_PERROR;
+#endif
+
     openlog(globals.daemon_name, option, LOG_DAEMON);
     check_pid_file(&globals);
     create_socket(&globals);
     become_daemon(&globals);
 
-    if (write_pid(globals.pid_fd)) {
+    if (globals.pid_file && write_pid(globals.pid_fd)) {
         syslog(LOG_DAEMON | LOG_CRIT, "ERROR: Failed to write to the PID file: %m");
         return EXIT_FAILURE;
     }

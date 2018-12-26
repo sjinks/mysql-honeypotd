@@ -41,7 +41,6 @@ static void usage()
         "                        (can be specified multiple times)\n"
         "  -p, --port PORT       the port to bind to (default: 3306)\n"
         "  -P, --pid FILE        the PID file\n"
-        "                        (default: /run/mysql-honeypotd/mysql-honeypotd.pid)\n"
         "  -n, --name NAME       the name of the daemon for syslog\n"
         "                        (default: mysql-honeypotd)\n"
         "  -u, --user USER       drop privileges and switch to this USER\n"
@@ -52,6 +51,7 @@ static void usage()
         "  -s, --setver VERSION  report this MySQL server version\n"
         "                        (default: 5.7.19)\n"
         "  -f, --foreground      do not daemonize\n"
+        "                        (forced if no PID file specified)\n"
         "  -h, --help            display this help and exit\n"
         "  -v, --version         output version information and exit\n\n"
         "NOTES:\n"
@@ -111,27 +111,24 @@ static char* my_strndup(const char *s, size_t n)
 
 static void set_defaults(struct globals_t* g)
 {
-    if (!g->nsockets) {
-        g->nsockets = 1;
-        g->bind_addresses = calloc(1, sizeof(char*));
-        check_alloc(g->bind_addresses, "calloc");
-        g->bind_addresses[0] = my_strdup("0.0.0.0");
-    }
-
-    if (!g->bind_port) {
-        g->bind_port = my_strdup("3306");
+    if (!g->server_ver) {
+        g->server_ver = my_strdup("5.7.19");
     }
 
     if (!g->daemon_name) {
         g->daemon_name = my_strdup("mysql-honeypotd");
     }
 
-    if (!g->pid_file) {
-        g->pid_file = my_strdup("/run/mysql-honeypotd/mysql-honeypotd.pid");
+    if (!g->nsockets) {
+        g->nalloc   = 1;
+        g->nsockets = 1;
+        g->bind_addresses = calloc(g->nalloc, sizeof(char*));
+        check_alloc(g->bind_addresses, "calloc");
+        g->bind_addresses[0] = my_strdup("0.0.0.0");
     }
 
-    if (!g->server_ver) {
-        g->server_ver = my_strdup("5.7.19");
+    if (!g->bind_port) {
+        g->bind_port = my_strdup("3306");
     }
 }
 
@@ -169,8 +166,7 @@ static void resolve_pid_file(struct globals_t* g)
             else {
                 fprintf(stderr, "ERROR: Failed to get the current directory: %s\n", strerror(errno));
                 free(g->pid_file);
-                g->pid_file = NULL;
-                return;
+                exit(EXIT_FAILURE);
             }
         }
 
@@ -190,7 +186,7 @@ static void resolve_pid_file(struct globals_t* g)
                 free(g->pid_file);
                 free(pid_dir);
                 g->pid_file = NULL;
-                return;
+                exit(EXIT_FAILURE);
             }
 
             free(pid_dir);
@@ -304,6 +300,6 @@ void parse_options(int argc, char** argv, struct globals_t* g)
     resolve_pid_file(g);
 
     if (!g->pid_file) {
-        exit(EXIT_FAILURE);
+        g->foreground = 1;
     }
 }
