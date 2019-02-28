@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-CFLAGS += -O2 -g3 -std=c99 -Wall -Wextra -fvisibility=hidden -fno-strict-aliasing -Wno-unused-parameter
+CFLAGS   += -O2 -g3 -std=gnu99 -Wall -Wextra -fvisibility=hidden -fno-strict-aliasing -Wno-unused-parameter
 CPPFLAGS += -D_DEFAULT_SOURCE
 
 %:
