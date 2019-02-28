@@ -1,3 +1,9 @@
+mysql-honeypotd (0.4.1) bionic; urgency=low
+
+  * Fix Bug #4
+
+ -- Volodymyr Kolesnykov <volodymyr@wildwolf.name>  Thu, 28 Feb 2019 14:56:00 +0200
+
 mysql-honeypotd (0.4.0) bionic; urgency=low
 
   * Make PID file optional
