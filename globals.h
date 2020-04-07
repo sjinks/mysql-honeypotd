@@ -21,6 +21,7 @@ struct globals_t {
     int foreground;
     int uid_set;
     int gid_set;
+    int delay;
     uid_t uid;
     gid_t gid;
     uint32_t thread_id;

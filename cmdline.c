@@ -22,6 +22,7 @@ static struct option long_options[] = {
     { "user",       required_argument, NULL, 'u' },
     { "group",      required_argument, NULL, 'g' },
     { "chroot",     required_argument, NULL, 'c' },
+    { "delay",      required_argument, NULL, 'd' },
     { "foreground", no_argument,       NULL, 'f' },
     { "setver",     required_argument, NULL, 's' },
     { "help",       no_argument,       NULL, 'h' },
@@ -50,6 +51,7 @@ static void usage()
         "  -c, --chroot DIR      chroot() into the specified DIR\n"
         "  -s, --setver VERSION  report this MySQL server version\n"
         "                        (default: 5.7.19)\n"
+        "  -d, --delay DELAY     Add DELAY seconds after each login attempt\n"
         "  -f, --foreground      do not daemonize\n"
         "                        (forced if no PID file specified)\n"
         "  -h, --help            display this help and exit\n"
@@ -130,6 +132,7 @@ static void set_defaults(struct globals_t* g)
     if (!g->bind_port) {
         g->bind_port = my_strdup("3306");
     }
+
 }
 
 static void resolve_pid_file(struct globals_t* g)
@@ -198,7 +201,7 @@ void parse_options(int argc, char** argv, struct globals_t* g)
 {
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "b:p:P:n:u:g:c:s:fhv", long_options, &option_index);
+        int c = getopt_long(argc, argv, "b:p:P:n:u:g:c:s:d:fhv", long_options, &option_index);
         if (-1 == c) {
             break;
         }
@@ -229,6 +232,10 @@ void parse_options(int argc, char** argv, struct globals_t* g)
             case 'n':
                 free(g->daemon_name);
                 g->daemon_name = my_strdup(optarg);
+                break;
+
+            case 'd':
+                g->delay = atoi(my_strdup(optarg));
                 break;
 
             case 'f':
