@@ -7,6 +7,7 @@
 #include "globals.h"
 #include "protocol.h"
 #include "utils.h"
+#include <unistd.h>
 
 static int out_of_order(struct connection_t* conn, int mask)
 {
@@ -130,6 +131,8 @@ static int do_auth(struct connection_t* conn, int mask)
         (unsigned int)conn->my_port,
         pwd_len > 0 ? "YES" : "NO"
     );
+
+    sleep(globals.delay);
 
     char* tmp    = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
     free(conn->buffer);
