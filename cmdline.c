@@ -76,7 +76,7 @@ static void version()
 {
     printf(
         "mysql-honeypotd 0.4.1\n"
-        "Copyright (c) 2017, 2019 Volodymyr Kolesnykov <volodymyr@wildwolf.name>\n"
+        "Copyright (c) 2017, 2020 Volodymyr Kolesnykov <volodymyr@wildwolf.name>\n"
         "License: MIT <http://opensource.org/licenses/MIT>\n"
     );
 
@@ -236,6 +236,10 @@ void parse_options(int argc, char** argv, struct globals_t* g)
 
             case 'd':
                 g->delay = atoi(my_strdup(optarg));
+                if (g->delay < 0) {
+                    g->delay = 0;
+                }
+
                 break;
 
             case 'f':
