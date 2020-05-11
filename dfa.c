@@ -132,7 +132,9 @@ static int do_auth(struct connection_t* conn, int mask)
         pwd_len > 0 ? "YES" : "NO"
     );
 
-    sleep(globals.delay);
+    if (globals.delay > 0) {
+        ev_sleep(globals.delay);
+    }
 
     char* tmp    = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
     free(conn->buffer);
