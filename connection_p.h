@@ -13,12 +13,15 @@ enum conn_state_t {
     WRITING_ASR,
     WRITING_OOO,
     WRITING_AF,
+    SLEEPING,
     DONE
 };
 
 struct connection_t {
+    struct ev_loop* loop;
     ev_io io;
     ev_timer tmr;
+    ev_timer delay;
     char* buffer;
     size_t size;
     size_t pos;

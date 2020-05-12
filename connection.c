@@ -18,6 +18,8 @@ static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
 {
     ev_io_stop(loop, &conn->io);
     ev_timer_stop(loop, &conn->tmr);
+    ev_timer_stop(loop, &conn->delay);
+
     shutdown(conn->io.fd, SHUT_RDWR);
     close(conn->io.fd);
 
@@ -57,6 +59,11 @@ static void connection_callback(struct ev_loop* loop, ev_io* w, int revents)
             ok = handle_auth(conn, revents);
             break;
 
+        case SLEEPING:
+            ok = 1;
+            ev_timer_stop(loop, &conn->tmr);
+            break;
+
         case WRITING_OOO:
         case WRITING_AF:
             ok = handle_write(conn, revents, DONE);
@@ -92,12 +99,14 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
             }
 
             struct connection_t* conn = (struct connection_t*)calloc(1, sizeof(struct connection_t));
+            conn->loop  = loop;
             conn->state = NEW_CONN;
             ev_io_init(&conn->io, connection_callback, sock, EV_READ | EV_WRITE);
-            ev_init(&conn->tmr, connection_timeout);
-            conn->tmr.repeat = 10.0;
+            ev_timer_init(&conn->tmr, connection_timeout, 0, 10);
+            ev_timer_init(&conn->delay, do_auth_failed, globals.delay ? globals.delay : 0.01, 0);
             conn->io.data    = conn;
             conn->tmr.data   = conn;
+            conn->delay.data = conn;
 
             get_ip_port(&sa, conn->ip, &conn->port);
             if (0 != getnameinfo(&sa, len, conn->host, sizeof(conn->host), NULL, 0, 0)) {

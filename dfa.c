@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -62,6 +63,14 @@ int handle_write(struct connection_t* conn, int mask, int next)
     }
 
     return EV_WRITE;
+}
+
+void do_auth_failed(struct ev_loop* loop, struct ev_timer* timer, int revents)
+{
+    struct connection_t* conn = (struct connection_t*)timer->data;
+
+    conn->state = WRITING_AF;
+    ev_feed_event(loop, &conn->io, EV_WRITE);
 }
 
 static int do_auth(struct connection_t* conn, int mask)
@@ -132,17 +141,14 @@ static int do_auth(struct connection_t* conn, int mask)
         pwd_len > 0 ? "YES" : "NO"
     );
 
-    if (globals.delay > 0) {
-        ev_sleep(globals.delay);
-    }
-
     char* tmp    = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
     free(conn->buffer);
     conn->buffer = tmp;
+    conn->state  = SLEEPING;
     conn->size   = (unsigned int)(conn->buffer[0]) + 4;
     conn->pos    = 0;
-    conn->state  = WRITING_AF;
-    return handle_write(conn, mask, DONE);
+    ev_timer_start(conn->loop, &conn->delay);
+    return EV_WRITE;
 }
 
 int handle_auth(struct connection_t* conn, int mask)
