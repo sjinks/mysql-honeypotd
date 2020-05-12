@@ -25,7 +25,7 @@ Mandatory arguments to long options are mandatory for short options too.
   * `-s`, `--setver VER`      set MySQL server version to `VER` (default: 5.7.19)
   * `-d`, `--delay DELAY`     Add `DELAY` seconds after each login attempt
   * `-f`, `--foreground`      do not daemonize (forced if no PID file specified)
-  * `-x`, `--no-syslog`       log errors to stderr only; ignoref if `-f` is not specified
+  * `-x`, `--no-syslog`       log errors to stderr only; ignored if `-f` is not specified
   * `-h`, `--help`            display this help and exit
   * `-v`, `--version`         output version information and exit
 
