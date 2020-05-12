@@ -235,7 +235,7 @@ void parse_options(int argc, char** argv, struct globals_t* g)
                 break;
 
             case 'd':
-                g->delay = atoi(my_strdup(optarg));
+                g->delay = atoi(optarg);
                 if (g->delay < 0) {
                     g->delay = 0;
                 }
