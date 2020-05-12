@@ -2,17 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <syslog.h>
 #include "dfa.h"
 #include "connection_p.h"
 #include "globals.h"
 #include "protocol.h"
+#include "log.h"
 #include "utils.h"
 #include <unistd.h>
 
 static int out_of_order(struct connection_t* conn, int mask)
 {
-    syslog(
+    my_log(
         LOG_DAEMON | LOG_WARNING,
         "Packets are out of order or invalid from %s:%u connecting to %s:%u",
         conn->ip,
@@ -130,7 +130,7 @@ static int do_auth(struct connection_t* conn, int mask)
         }
     }
 
-    syslog(
+    my_log(
         LOG_AUTH | LOG_WARNING,
         "Access denied for user '%s' from %s:%u to %s:%u (using password: %s)",
         user,

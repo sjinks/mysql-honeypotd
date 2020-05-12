@@ -6,12 +6,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <syslog.h>
+#include <errno.h>
 #include <ev.h>
 #include "connection.h"
 #include "connection_p.h"
 #include "dfa.h"
 #include "globals.h"
+#include "log.h"
 #include "utils.h"
 
 static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
@@ -27,14 +28,14 @@ static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
         free(conn->buffer);
     }
 
-    syslog(LOG_DAEMON | LOG_WARNING, "Closing connection for %s:%u", conn->ip, (unsigned int)conn->port);
+    my_log(LOG_DAEMON | LOG_WARNING, "Closing connection for %s:%u", conn->ip, (unsigned int)conn->port);
     free(conn);
 }
 
 static void connection_timeout(struct ev_loop* loop, ev_timer* w, int revents)
 {
     struct connection_t* conn = (struct connection_t*)w->data;
-    syslog(LOG_AUTH | LOG_WARNING, "Connection timed out for %s:%u", conn->ip, (unsigned int)conn->port);
+    my_log(LOG_AUTH | LOG_WARNING, "Connection timed out for %s:%u", conn->ip, (unsigned int)conn->port);
     kill_connection(conn, loop);
 }
 
@@ -93,7 +94,7 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
         int sock = accept(w->fd, &sa, &len);
         if (sock != -1) {
             if (-1 == make_nonblocking(sock)) {
-                syslog(LOG_DAEMON | LOG_WARNING, "new_connection(): failed to make the accept()'ed socket non-blocking: %m");
+                my_log(LOG_DAEMON | LOG_WARNING, "new_connection(): failed to make the accept()'ed socket non-blocking: %s", strerror(errno));
                 close(sock);
                 return;
             }
@@ -119,12 +120,12 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
                 get_ip_port(&sa, conn->my_ip, &conn->my_port);
             }
             else {
-                syslog(LOG_DAEMON | LOG_WARNING, "WARNING: getsockname() failed: %m");
+                my_log(LOG_DAEMON | LOG_WARNING, "WARNING: getsockname() failed: %s", strerror(errno));
                 conn->my_port = atoi(globals.bind_port);
                 memcpy(conn->my_ip, "0.0.0.0", sizeof("0.0.0.0"));
             }
 
-            syslog(
+            my_log(
                 LOG_DAEMON | LOG_INFO,
                 "New connection from %s:%u [%s] to %s:%u",
                 conn->ip, (unsigned int)conn->port, conn->host,
@@ -134,7 +135,7 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
             ev_io_start(loop, &conn->io);
         }
         else {
-            syslog(LOG_DAEMON | LOG_WARNING, "accept() failed: %m");
+            my_log(LOG_DAEMON | LOG_WARNING, "accept() failed: %s", strerror(errno));
         }
     }
 }
