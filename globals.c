@@ -6,9 +6,9 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <syslog.h>
 #include <ev.h>
 #include "globals.h"
+#include "log.h"
 
 struct globals_t globals;
 
@@ -30,7 +30,7 @@ static void kill_pid_file(struct globals_t* g)
         assert(g->pid_base != NULL);
 
         if (-1 == unlinkat(g->piddir_fd, g->pid_base, 0)) {
-            syslog(LOG_DAEMON | LOG_WARNING, "WARNING: Failed to delete the PID file %s: %m", g->pid_file);
+            my_log(LOG_DAEMON | LOG_WARNING, "WARNING: Failed to delete the PID file %s: %s", g->pid_file, strerror(errno));
         }
 
         close(g->pid_fd);
@@ -57,7 +57,9 @@ void free_globals(struct globals_t* g)
 
     kill_pid_file(g);
 
-    closelog();
+    if (!g->no_syslog) {
+        closelog();
+    }
 
     if (g->bind_addresses) {
         for (size_t i=0; i<g->nsockets; ++i) {

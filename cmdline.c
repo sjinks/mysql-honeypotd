@@ -24,6 +24,7 @@ static struct option long_options[] = {
     { "chroot",     required_argument, NULL, 'c' },
     { "delay",      required_argument, NULL, 'd' },
     { "foreground", no_argument,       NULL, 'f' },
+    { "no-syslog",  no_argument,       NULL, 'x' },
     { "setver",     required_argument, NULL, 's' },
     { "help",       no_argument,       NULL, 'h' },
     { "version",    no_argument,       NULL, 'v' }
@@ -54,6 +55,8 @@ static void usage()
         "  -d, --delay DELAY     Add DELAY seconds after each login attempt\n"
         "  -f, --foreground      do not daemonize\n"
         "                        (forced if no PID file specified)\n"
+        "  -x, --no-syslog       log messages only to stderr\n"
+        "                        (only works with --foreground)\n"
         "  -h, --help            display this help and exit\n"
         "  -v, --version         output version information and exit\n\n"
         "NOTES:\n"
@@ -201,7 +204,7 @@ void parse_options(int argc, char** argv, struct globals_t* g)
 {
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "b:p:P:n:u:g:c:s:d:fhv", long_options, &option_index);
+        int c = getopt_long(argc, argv, "b:p:P:n:u:g:c:s:d:fxhv", long_options, &option_index);
         if (-1 == c) {
             break;
         }
@@ -244,6 +247,10 @@ void parse_options(int argc, char** argv, struct globals_t* g)
 
             case 'f':
                 g->foreground = 1;
+                break;
+
+            case 'x':
+                g->no_syslog = 1;
                 break;
 
             case 'u': {
@@ -312,5 +319,9 @@ void parse_options(int argc, char** argv, struct globals_t* g)
 
     if (!g->pid_file) {
         g->foreground = 1;
+    }
+
+    if (!g->foreground) {
+        g->no_syslog = 0;
     }
 }

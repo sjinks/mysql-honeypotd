@@ -8,18 +8,18 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <syslog.h>
 #include <ev.h>
 #include "globals.h"
 #include "cmdline.h"
 #include "connection.h"
 #include "daemon.h"
+#include "log.h"
 #include "pidfile.h"
 #include "utils.h"
 
 static void signal_callback(struct ev_loop* loop, ev_signal* w, int revents)
 {
-    syslog(LOG_DAEMON | LOG_INFO, "Got signal %d, shutting down", w->signum);
+    my_log(LOG_DAEMON | LOG_INFO, "Got signal %d, shutting down", w->signum);
     ev_break(loop, EVBREAK_ALL);
 }
 
@@ -199,13 +199,16 @@ int main(int argc, char** argv)
     option |= LOG_PERROR;
 #endif
 
-    openlog(globals.daemon_name, option, LOG_DAEMON);
+    if (!globals.no_syslog) {
+        openlog(globals.daemon_name, option, LOG_DAEMON);
+    }
+
     check_pid_file(&globals);
     create_socket(&globals);
     become_daemon(&globals);
 
     if (globals.pid_file && write_pid(globals.pid_fd)) {
-        syslog(LOG_DAEMON | LOG_CRIT, "ERROR: Failed to write to the PID file: %m");
+        my_log(LOG_DAEMON | LOG_CRIT, "ERROR: Failed to write to the PID file: %s", strerror(errno));
         return EXIT_FAILURE;
     }
 
