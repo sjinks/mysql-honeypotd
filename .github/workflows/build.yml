@@ -12,6 +12,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install dependencies
-      run: sudo apt-get libev-dev
+      run: sudo apt-get install libev-dev
     - name: Build project
       run: make
