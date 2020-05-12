@@ -11,5 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: make
+    - name: Install dependencies
+      run: sudo apt-get libev-dev
+    - name: Build project
       run: make
