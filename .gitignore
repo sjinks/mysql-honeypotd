@@ -1,9 +1,6 @@
-/*.d
+*.dep
 *.o
 mysql-honeypotd
-/.cproject
-/.project
-/.settings/
 /debian/*.log
 /debian/*.debhelper
 /debian/debhelper-build-stamp

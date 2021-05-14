@@ -1,4 +1,7 @@
-#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <grp.h>
@@ -6,6 +9,17 @@
 #include <netdb.h>
 #include "daemon.h"
 #include "globals.h"
+#include "log.h"
+#include "pidfile.h"
+
+#ifndef MINIMALISTIC_BUILD
+
+#define DAEMONIZE_OK         0
+#define DAEMONIZE_UNPRIV    -1
+#define DAEMONIZE_CHROOT    -2
+#define DAEMONIZE_CHDIR     -3
+#define DAEMONIZE_DROP      -4
+#define DAEMONIZE_DAEMON    -5
 
 static void load_resolver()
 {
@@ -47,7 +61,7 @@ static int drop_privs(struct globals_t* g)
     return 0;
 }
 
-int daemonize(struct globals_t* g)
+static int daemonize(struct globals_t* g)
 {
     if (geteuid() == 0) {
         if (!g->uid_set || !g->gid_set) {
@@ -90,4 +104,43 @@ int daemonize(struct globals_t* g)
     }
 
     return DAEMONIZE_OK;
+}
+#endif
+
+void become_daemon(struct globals_t* g)
+{
+#ifndef MINIMALISTIC_BUILD
+    int res = daemonize(g);
+    if (res != DAEMONIZE_OK) {
+        int err = errno;
+        switch (res) {
+            case DAEMONIZE_UNPRIV:
+                fprintf(stderr, "ERROR: Failed to find an unprivileged account\n");
+                break;
+
+            case DAEMONIZE_CHROOT:
+                fprintf(stderr, "ERROR: Failed to chroot(%s): %s\n", globals.chroot_dir, strerror(err));
+                break;
+
+            case DAEMONIZE_CHDIR:
+                fprintf(stderr, "ERROR: Failed to chdir(%s): %s\n", globals.chroot_dir, strerror(err));
+                break;
+
+            case DAEMONIZE_DROP:
+                fprintf(stderr, "ERROR: Failed to drop privileges\n");
+                break;
+
+            case DAEMONIZE_DAEMON:
+                fprintf(stderr, "ERROR: Failed to daemonize: %s\n", strerror(err));
+                break;
+        }
+
+        exit(EXIT_FAILURE);
+    }
+
+    if (globals.pid_file && write_pid(globals.pid_fd)) {
+        my_log(LOG_DAEMON | LOG_CRIT, "ERROR: Failed to write to the PID file: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+#endif
 }

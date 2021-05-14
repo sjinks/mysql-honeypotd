@@ -42,6 +42,7 @@ static void usage()
         "  -b, --address ADDRESS the IP address to bind to (default: 0.0.0.0)\n"
         "                        (can be specified multiple times)\n"
         "  -p, --port PORT       the port to bind to (default: 3306)\n"
+#ifndef MINIMALISTIC_BUILD
         "  -P, --pid FILE        the PID file\n"
         "  -n, --name NAME       the name of the daemon for syslog\n"
         "                        (default: mysql-honeypotd)\n"
@@ -50,15 +51,17 @@ static void usage()
         "  -g, --group GROUP     drop privileges and switch to this GROUP\n"
         "                        (default: daemon or nogroup)\n"
         "  -c, --chroot DIR      chroot() into the specified DIR\n"
-        "  -s, --setver VERSION  report this MySQL server version\n"
-        "                        (default: 5.7.19)\n"
-        "  -d, --delay DELAY     Add DELAY seconds after each login attempt\n"
         "  -f, --foreground      do not daemonize\n"
         "                        (forced if no PID file specified)\n"
         "  -x, --no-syslog       log messages only to stderr\n"
         "                        (only works with --foreground)\n"
+#endif
+        "  -s, --setver VERSION  report this MySQL server version\n"
+        "                        (default: 8.0.19)\n"
+        "  -d, --delay DELAY     Add DELAY seconds after each login attempt\n"
         "  -h, --help            display this help and exit\n"
         "  -v, --version         output version information and exit\n\n"
+#ifndef MINIMALISTIC_BUILD
         "NOTES:\n"
         "  1. --user, --group, and --chroot options are honored only if\n"
         "     mysql-honeypotd is run as root\n"
@@ -66,6 +69,7 @@ static void usage()
         "  3. When using --name and/or --group, please make sure that\n"
         "     the PID file can be deleted by the target user\n"
         "\n"
+#endif
         "Please report bugs here: <https://github.com/sjinks/mysql-honeypotd/issues>\n"
     );
 
@@ -78,8 +82,8 @@ __attribute__((noreturn))
 static void version()
 {
     printf(
-        "mysql-honeypotd 0.5.0\n"
-        "Copyright (c) 2017, 2020 Volodymyr Kolesnykov <volodymyr@wildwolf.name>\n"
+        "mysql-honeypotd 1.0.0\n"
+        "Copyright (c) 2017, 2021 Volodymyr Kolesnykov <volodymyr@wildwolf.name>\n"
         "License: MIT <http://opensource.org/licenses/MIT>\n"
     );
 
@@ -117,12 +121,14 @@ static char* my_strndup(const char *s, size_t n)
 static void set_defaults(struct globals_t* g)
 {
     if (!g->server_ver) {
-        g->server_ver = my_strdup("5.7.19");
+        g->server_ver = my_strdup("8.0.19");
     }
 
+#ifndef MINIMALISTIC_BUILD
     if (!g->daemon_name) {
         g->daemon_name = my_strdup("mysql-honeypotd");
     }
+#endif
 
     if (!g->nsockets) {
         g->nalloc   = 1;
@@ -138,6 +144,7 @@ static void set_defaults(struct globals_t* g)
 
 }
 
+#ifndef MINIMALISTIC_BUILD
 static void resolve_pid_file(struct globals_t* g)
 {
     if (g->pid_file) {
@@ -199,12 +206,25 @@ static void resolve_pid_file(struct globals_t* g)
         }
     }
 }
+#endif
 
 void parse_options(int argc, char** argv, struct globals_t* g)
 {
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "b:p:P:n:u:g:c:s:d:fxhv", long_options, &option_index);
+        int c = getopt_long(
+            argc, 
+            argv,
+            (
+                "b:p:d:s:hv"
+#ifndef MINIMALISTIC_BUILD
+                "P:n:u:g:c:fx"
+#endif
+            ),
+            long_options,
+            &option_index
+        );
+
         if (-1 == c) {
             break;
         }
@@ -214,7 +234,7 @@ void parse_options(int argc, char** argv, struct globals_t* g)
                 ++g->nsockets;
                 if (g->nsockets > g->nalloc) {
                     g->nalloc += 16;
-                    char** tmp = realloc(g->bind_addresses, g->nalloc*sizeof(char*));
+                    char** tmp = realloc(g->bind_addresses, g->nalloc * sizeof(char*));
                     check_alloc(tmp, "realloc");
                     g->bind_addresses = tmp;
                 }
@@ -227,6 +247,30 @@ void parse_options(int argc, char** argv, struct globals_t* g)
                 g->bind_port = my_strdup(optarg);
                 break;
 
+            case 'd':
+                g->delay = atoi(optarg);
+                if (g->delay < 0) {
+                    g->delay = 0;
+                }
+
+                break;
+
+            case 's':
+                free(g->server_ver);
+                g->server_ver = my_strndup(optarg, 63);
+                break;
+
+            case 'h':
+                usage();
+                /* unreachable */
+                /* no break */
+
+            case 'v':
+                version();
+                /* unreachable */
+                /* no break */
+
+#ifndef MINIMALISTIC_BUILD
             case 'P':
                 free(g->pid_file);
                 g->pid_file = my_strdup(optarg);
@@ -235,14 +279,6 @@ void parse_options(int argc, char** argv, struct globals_t* g)
             case 'n':
                 free(g->daemon_name);
                 g->daemon_name = my_strdup(optarg);
-                break;
-
-            case 'd':
-                g->delay = atoi(optarg);
-                if (g->delay < 0) {
-                    g->delay = 0;
-                }
-
                 break;
 
             case 'f':
@@ -287,21 +323,7 @@ void parse_options(int argc, char** argv, struct globals_t* g)
                 free(g->chroot_dir);
                 g->chroot_dir = my_strdup(optarg);
                 break;
-
-            case 's':
-                free(g->server_ver);
-                g->server_ver = my_strndup(optarg, 63);
-                break;
-
-            case 'h':
-                usage();
-                /* unreachable */
-                /* no break */
-
-            case 'v':
-                version();
-                /* unreachable */
-                /* no break */
+#endif
 
             case '?':
             default:
@@ -315,6 +337,7 @@ void parse_options(int argc, char** argv, struct globals_t* g)
     }
 
     set_defaults(g);
+#ifndef MINIMALISTIC_BUILD
     resolve_pid_file(g);
 
     if (!g->pid_file) {
@@ -324,4 +347,5 @@ void parse_options(int argc, char** argv, struct globals_t* g)
     if (!g->foreground) {
         g->no_syslog = 0;
     }
+#endif
 }
