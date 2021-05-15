@@ -1,14 +1,24 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include "dfa.h"
-#include "connection_p.h"
-#include "globals.h"
+#include <unistd.h>
 #include "protocol.h"
+#include "byteutils.h"
+#include "connection_p.h"
+#include "dfa.h"
+#include "globals.h"
 #include "log.h"
 #include "utils.h"
-#include <unistd.h>
+
+/* capabilities */
+#define CLIENT_CONNECT_WITH_DB                  0x0008
+#define CLIENT_PROTOCOL_41                      0x0200
+
+/* extended capabilities */
+#define CLIENT_PLUGIN_AUTH                      0x0008
+#define CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA   0x0020
 
 static int out_of_order(struct connection_t* conn, int mask)
 {
@@ -73,6 +83,60 @@ void do_auth_failed(struct ev_loop* loop, struct ev_timer* timer, int revents)
     ev_feed_event(loop, &conn->io, EV_WRITE);
 }
 
+/**
+ * @see https://dev.mysql.com/doc/dev/mysql-server/8.0.11/page_protocol_basic_dt_integers.html#sect_protocol_basic_dt_int_le
+ */
+static uint64_t decodeLEI(const uint8_t* buffer, size_t buflen, size_t* bytes)
+{
+    assert(buflen > 0);
+    assert(bytes != NULL);
+
+    /* A fixed-length unsigned integer stores its value in a series of bytes with the least significant byte first. */
+    switch (*buffer) {
+        case 0x00u:
+            *bytes = 1;
+            return 0;
+
+        case 0xFCu:
+            *bytes = buflen > 2 ? 3 : 0;
+            return *bytes ? load2(buffer + 1) : 0;
+
+        case 0xFDu:
+            *bytes = buflen > 3 ? 4 : 0;
+            return *bytes ? load3(buffer + 1) : 0;
+
+        case 0xFEu:
+            *bytes = buflen > 8 ? 9 : 0;
+            return *bytes ? load8(buffer + 1) : 0;
+
+        case 0xFFu:
+            *bytes = 0;
+            return 0;
+
+        default:
+            *bytes = 1;
+            return load1(buffer);
+    }
+}
+
+static void log_access_denied(const struct connection_t* conn, const uint8_t* user, const uint8_t* auth_plugin, size_t pwd_len)
+{
+    my_log(
+        LOG_AUTH | LOG_WARNING,
+        "Access denied for user '%s' from %s:%u to %s:%u (using password: %s; authentication plugin: %s)",
+        user,
+        conn->ip,
+        (unsigned int)conn->port,
+        conn->my_ip,
+        (unsigned int)conn->my_port,
+        pwd_len > 0 ? "YES" : "NO",
+        auth_plugin ? (const char*)auth_plugin : "N/A"
+    );
+}
+
+/**
+ * @see https://dev.mysql.com/doc/dev/mysql-server/8.0.11/page_protocol_connection_phase_packets_protocol_handshake_response.html
+ */
 static int do_auth(struct connection_t* conn, int mask)
 {
     /*
@@ -84,29 +148,51 @@ static int do_auth(struct connection_t* conn, int mask)
      * 0x0C 0x01    Client character set
      * 0x0D 0x17    Unused, zero
      * 0x24 ??      User name (NUL-terminated)
-     * XX   0x01    Password length
-     * XX+1 ??      Password
+     * XX   ??      Auth data
      * YY   ??      Schema (NUL-terminated); only if caps & 0x08
      * ZZ   ??      Client authentication plugin (NUL-terminated)
      */
     /* NB: conn->buffer has the packet without the first four bytes */
 
-    uint16_t caps;
-    uint16_t extcaps;
-    memcpy(&caps,    conn->buffer + 0x04 - 0x04, sizeof(uint16_t));
-    memcpy(&extcaps, conn->buffer + 0x06 - 0x04, sizeof(uint16_t));
+    uint16_t caps    = load2(conn->buffer + 0x04 - 0x04);
+    uint16_t extcaps = load2(conn->buffer + 0x06 - 0x04);
 
-    char* user     = conn->buffer + 0x24 - 0x04;
-    char* user_end = (char*)memchr(user, 0, conn->size - 0x24 + 0x04);
+    if ((caps & CLIENT_PROTOCOL_41) == 0) {
+        /* We do not support the old HandshakeResponse320 yet */
+        return out_of_order(conn, mask);
+    }
+
+    const uint8_t* user     = (conn->buffer + 0x24 - 0x04);
+    const uint8_t* user_end = memchr(user, 0, conn->size - 0x24 + 0x04);
     if (user_end == NULL) {
         return out_of_order(conn, mask);
     }
 
-    unsigned char pwd_len = (unsigned char)*(user_end + 1);
-    char* pos             = user_end + 1 + 1 + pwd_len;
+    uint64_t pwd_len = 0;
+    const uint8_t* pos = user_end + 1;
+    /* const uint8_t* pwd_pos; */
+    if (extcaps & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) {
+        size_t bytes;
+        pwd_len = decodeLEI(pos, (size_t)(conn->buffer + conn->size - pos), &bytes);
+        if (!bytes) {
+            return out_of_order(conn, mask);
+        }
 
-    if (caps & 0x08) {
-        char* schema_end = (char*)memchr(pos, 0, conn->buffer + conn->size - pos);
+        /* pwd_pos = pos + bytes; */
+        pos    += bytes + pwd_len;
+    }
+    else {
+        pwd_len = load1(pos);
+        /* pwd_pos = pos + 1; */
+        pos    += 1 + pwd_len;
+    }
+
+    if (pos > conn->buffer + conn->size) {
+        return out_of_order(conn, mask);
+    }
+
+    if (caps & CLIENT_CONNECT_WITH_DB) {
+        uint8_t* schema_end = memchr(pos, 0, (size_t)(conn->buffer + conn->size - pos));
         if (schema_end == NULL) {
             return out_of_order(conn, mask);
         }
@@ -114,34 +200,30 @@ static int do_auth(struct connection_t* conn, int mask)
         pos = schema_end + 1;
     }
 
-    if (extcaps & 0x08) {
-        char* plugin_end = (char*)memchr(pos, 0, conn->buffer + conn->size - pos);
+    const uint8_t* auth_plugin = NULL;
+    if (extcaps & CLIENT_PLUGIN_AUTH) {
+        const uint8_t* plugin_end = memchr(pos, 0, (size_t)(conn->buffer + conn->size - pos));
         if (plugin_end == NULL) {
             return out_of_order(conn, mask);
         }
 
-        if (plugin_end - pos != 21 || strcasecmp("mysql_native_password", pos)) {
+        auth_plugin = pos;
+        if (strcasecmp("mysql_clear_password", (const char*)pos) && strcasecmp("mysql_native_password", (const char*)pos)) {
+            log_access_denied(conn, user, auth_plugin, pwd_len);
+
             free(conn->buffer);
-            conn->buffer = create_auth_switch_request(conn->sequence + 1);
-            conn->size   = (unsigned int)(conn->buffer[0]) + 4;
-            conn->pos    = 0;
-            conn->state  = WRITING_ASR;
-            return handle_write(conn, mask, READING_AUTH);
+            conn->buffer      = create_auth_switch_request(conn->sequence + 1);
+            conn->size        = (unsigned int)(conn->buffer[0]) + 4;
+            conn->pos         = 0;
+            conn->state       = WRITING_ASR;
+            conn->auth_failed = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
+            return handle_write(conn, mask, WRITING_ASR);
         }
     }
 
-    my_log(
-        LOG_AUTH | LOG_WARNING,
-        "Access denied for user '%s' from %s:%u to %s:%u (using password: %s)",
-        user,
-        conn->ip,
-        (unsigned int)conn->port,
-        conn->my_ip,
-        (unsigned int)conn->my_port,
-        pwd_len > 0 ? "YES" : "NO"
-    );
+    log_access_denied(conn, user, auth_plugin, pwd_len);
 
-    char* tmp    = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
+    uint8_t* tmp = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
     free(conn->buffer);
     conn->buffer = tmp;
     conn->state  = SLEEPING;
@@ -151,7 +233,21 @@ static int do_auth(struct connection_t* conn, int mask)
     return EV_WRITE;
 }
 
-int handle_auth(struct connection_t* conn, int mask)
+static int do_auth_asr(struct connection_t* conn, int mask)
+{
+    assert(conn->auth_failed != NULL);
+    free(conn->buffer);
+    conn->buffer      = conn->auth_failed;
+    conn->auth_failed = NULL;
+    conn->buffer[3]   = conn->sequence + 1;
+    conn->state       = SLEEPING;
+    conn->size        = (unsigned int)(conn->buffer[0]) + 4;
+    conn->pos         = 0;
+    ev_timer_start(conn->loop, &conn->delay);
+    return EV_WRITE;
+}
+
+static int handle_read(struct connection_t* conn, int mask, int(*callback)(struct connection_t*, int))
 {
     if (mask & EV_READ) {
         ssize_t n;
@@ -193,9 +289,19 @@ int handle_auth(struct connection_t* conn, int mask)
 
         conn->pos += (size_t)n;
         if (conn->pos == conn->size) {
-            return do_auth(conn, mask);
+            return callback(conn, mask);
         }
     }
 
     return EV_READ;
+}
+
+int handle_auth(struct connection_t* conn, int mask)
+{
+    return handle_read(conn, mask, do_auth);
+}
+
+int handle_auth_asr(struct connection_t* conn, int mask)
+{
+    return handle_read(conn, mask, do_auth_asr);
 }

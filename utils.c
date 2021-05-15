@@ -65,12 +65,18 @@ void get_ip_port(const struct sockaddr* addr, char* ipstr, uint16_t* port)
     assert(port  != NULL);
 
     if (addr->sa_family == AF_INET) {
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wcast-align"
         const struct sockaddr_in* s = (const struct sockaddr_in*)addr;
+        #pragma clang diagnostic pop
         *port = ntohs(s->sin_port);
         inet_ntop(AF_INET, &s->sin_addr, ipstr, INET6_ADDRSTRLEN);
     }
     else if (addr->sa_family == AF_INET6) {
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wcast-align"
         const struct sockaddr_in6* s = (const struct sockaddr_in6*)addr;
+        #pragma clang diagnostic pop
         *port = ntohs(s->sin6_port);
         inet_ntop(AF_INET6, &s->sin6_addr, ipstr, INET6_ADDRSTRLEN);
     }

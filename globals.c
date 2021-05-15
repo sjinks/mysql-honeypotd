@@ -16,13 +16,16 @@ void init_globals(struct globals_t* g)
 {
     memset(g, 0, sizeof(struct globals_t));
 
+#ifndef MINIMALISTIC_BUILD
     g->pid_fd    = -1;
     g->piddir_fd = -1;
+#endif
     g->loop      = EV_DEFAULT;
 
     signal(SIGPIPE, SIG_IGN);
 }
 
+#ifndef MINIMALISTIC_BUILD
 static void kill_pid_file(struct globals_t* g)
 {
     if (g->pid_fd >= 0) {
@@ -37,6 +40,7 @@ static void kill_pid_file(struct globals_t* g)
         close(g->piddir_fd);
     }
 }
+#endif
 
 void free_globals(struct globals_t* g)
 {
@@ -55,11 +59,18 @@ void free_globals(struct globals_t* g)
         free(g->sockets);
     }
 
+#ifndef MINIMALISTIC_BUILD
     kill_pid_file(g);
 
     if (!g->no_syslog) {
         closelog();
     }
+
+    free(g->pid_file);
+    free(g->daemon_name);
+    free(g->chroot_dir);
+    free(g->pid_base);
+#endif
 
     if (g->bind_addresses) {
         for (size_t i=0; i<g->nsockets; ++i) {
@@ -70,9 +81,5 @@ void free_globals(struct globals_t* g)
     }
 
     free(g->bind_port);
-    free(g->pid_file);
-    free(g->daemon_name);
-    free(g->chroot_dir);
-    free(g->pid_base);
     free(g->server_ver);
 }

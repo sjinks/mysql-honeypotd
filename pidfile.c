@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 #include <sys/stat.h>
@@ -5,6 +6,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include "globals.h"
 #include "pidfile.h"
 
 #define BUF_SIZE 64
@@ -23,6 +25,24 @@ static int lock_file(int fd, short int type, short int whence, off_t start, off_
     return fcntl(fd, F_OFD_SETLK, &fl);
 #else
     return fcntl(fd, F_SETLK, &fl);
+#endif
+}
+
+void check_pid_file(struct globals_t* g)
+{
+#ifndef MINIMALISTIC_BUILD
+    if (g->pid_file) {
+        g->pid_fd = create_pid_file(g->pid_file);
+        if (g->pid_fd == -1) {
+            fprintf(stderr, "Error creating PID file %s: %s\n", g->pid_file, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        if (g->pid_fd == -2) {
+            fprintf(stderr, "mysql-honeypotd is already running\n");
+            exit(EXIT_SUCCESS);
+        }
+    }
 #endif
 }
 

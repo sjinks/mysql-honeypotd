@@ -1,0 +1,36 @@
+name: Update DockerHub Description
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - README.md
+      - .github/workflows/dockerhub-description.yml
+  workflow_dispatch:
+
+jobs:
+  update-description:
+    name: Update DockerHub description
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[ci skip]') || github.event_name != 'push' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.4
+
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v2.4.2
+        with:
+          username: ${{ secrets.DOCKER_LOGIN }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: wildwildangel/mysql-honeypotd
+          short-description: A low-interaction MySQL honeypot
+
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v2.4.2
+        with:
+          username: ${{ secrets.DOCKER_LOGIN }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: wildwildangel/mysql-honeypotd-min
+          short-description: A low-interaction MySQL honeypot
