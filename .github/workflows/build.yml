@@ -12,6 +12,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        COMPILER:
+          - CC: gcc
+            CFLAGS: -O2 -Wall -Wextra -Werror -Wno-unknown-pragmas -Wno-unused-parameter -fvisibility=hidden -fno-strict-aliasing
+          - CC: clang
+            CFLAGS: -O2 -Weverything -Werror -Wno-unknown-pragmas -Wno-unused-parameter -fvisibility=hidden -fno-strict-aliasing
         CPPFLAGS:
           - ""
           - "-DMINIMALISTIC_BUILD"
@@ -23,4 +28,4 @@ jobs:
         run: sudo apt-get -qq update && sudo apt-get install -y libev-dev
 
       - name: make
-        run: make CPPFLAGS="${{ matrix.CPPFLAGS }}"
+        run: make CPPFLAGS="${{ matrix.CPPFLAGS }}" CC=${{ matrix.COMPILER.CC }} CFLAGS="${{ matrix.COMPILER.CFLAGS }}"
