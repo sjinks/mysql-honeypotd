@@ -5,16 +5,16 @@ COPY . /src/mysql-honeypotd
 
 FROM deps AS build-dynamic
 ENV \
-    CFLAGS="-Os -g0 -Wall -Wextra -fvisibility=hidden -fno-strict-aliasing -Wno-unused-parameter" \
+    CFLAGS="-Os -g0 -Wall -Wextra -Wno-unknown-pragmas -fvisibility=hidden -fno-strict-aliasing -Wno-unused-parameter" \
     CPPFLAGS="-D_DEFAULT_SOURCE"
-RUN make
+RUN make && strip mysql-honeypotd
 
 FROM deps AS build-static
 ENV \
-    CFLAGS="-Os -g0 -Wall -Wextra -fvisibility=hidden -fno-strict-aliasing -Wno-unused-parameter" \
+    CFLAGS="-Os -g0 -Wall -Wextra -Wno-unknown-pragmas -fvisibility=hidden -fno-strict-aliasing -Wno-unused-parameter" \
     CPPFLAGS="-D_DEFAULT_SOURCE -DMINIMALISTIC_BUILD" \
     LDFLAGS="-static"
-RUN make
+RUN make && strip mysql-honeypotd
 
 FROM alpine:3.13 AS release-dynamic
 RUN apk add --no-cache libev

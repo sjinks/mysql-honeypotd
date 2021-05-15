@@ -170,7 +170,7 @@ static int do_auth(struct connection_t* conn, int mask)
 
     uint64_t pwd_len = 0;
     const uint8_t* pos = user_end + 1;
-    const uint8_t* pwd_pos;
+    /* const uint8_t* pwd_pos; */
     if (extcaps & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) {
         size_t bytes;
         pwd_len = decodeLEI(pos, (size_t)(conn->buffer + conn->size - pos), &bytes);
@@ -178,12 +178,12 @@ static int do_auth(struct connection_t* conn, int mask)
             return out_of_order(conn, mask);
         }
 
-        pwd_pos = pos + bytes;
+        /* pwd_pos = pos + bytes; */
         pos    += bytes + pwd_len;
     }
     else {
         pwd_len = load1(pos);
-        pwd_pos = pos + 1;
+        /* pwd_pos = pos + 1; */
         pos    += 1 + pwd_len;
     }
 
