@@ -1,7 +1,7 @@
 #ifndef BYTEUTILS_H
 #define BYTEUTILS_H
 
-#include <inttypes.h>
+#include <stdint.h>
 #include <string.h>
 
 #if !defined(__BYTE_ORDER__) || !defined(__ORDER_BIG_ENDIAN__) || !defined(__ORDER_LITTLE_ENDIAN__)
