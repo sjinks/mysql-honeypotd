@@ -38,7 +38,10 @@ void my_log(int priority, const char *format, ...)
 #ifndef MINIMALISTIC_BUILD
     }
     else {
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wformat-nonliteral"
         vsyslog(priority, format, ap);
+        #pragma GCC diagnostic pop
     }
 #endif
 
