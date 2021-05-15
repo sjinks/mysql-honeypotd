@@ -41,7 +41,7 @@ static void connection_timeout(struct ev_loop* loop, ev_timer* w, int revents)
 static void connection_callback(struct ev_loop* loop, ev_io* w, int revents)
 {
     struct connection_t* conn = (struct connection_t*)w->data;
-    int ok;
+    int ok = 0;
 
     ev_io_stop(loop, w);
     ev_timer_again(loop, &conn->tmr);
@@ -78,7 +78,6 @@ static void connection_callback(struct ev_loop* loop, ev_io* w, int revents)
 
         case DONE:
             /* Should not happen */
-            ok = 0;
             assert(0);
             break;
     }
