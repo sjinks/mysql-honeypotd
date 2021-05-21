@@ -30,18 +30,12 @@ void my_log(int priority, const char *format, ...)
 #endif
             getpid()
         );
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wformat-nonliteral"
         vfprintf(stderr, format, ap);
-        #pragma GCC diagnostic pop
         fprintf(stderr, "\n");
 #ifndef MINIMALISTIC_BUILD
     }
     else {
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wformat-nonliteral"
         vsyslog(priority, format, ap);
-        #pragma GCC diagnostic pop
     }
 #endif
 
