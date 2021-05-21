@@ -45,11 +45,16 @@ static void create_socket(struct globals_t* g)
             sin.sin_family = AF_INET6;
         }
         else {
+            g->sockets[i] = -1;
             fprintf(stderr, "ERROR: '%s' is not a valid address\n", g->bind_addresses[i]);
             continue;
         }
 
+#if defined(__linux__) && defined(SOCK_NONBLOCK)
+        g->sockets[i] = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+#else
         g->sockets[i] = socket(AF_INET, SOCK_STREAM, 0);
+#endif
         if (-1 == g->sockets[i]) {
             fprintf(stderr, "ERROR: Failed to create socket: %s\n", strerror(errno));
             continue;
@@ -63,12 +68,14 @@ static void create_socket(struct globals_t* g)
             fprintf(stderr, "WARNING: setsockopt(IP_FREEBIND) failed: %s\n", strerror(errno));
         }
 
+#if !defined(__linux__) || !defined(SOCK_NONBLOCK)
         if (-1 == make_nonblocking(g->sockets[i])) {
             fprintf(stderr, "ERROR: Failed to make the socket non-blocking: %s\n", strerror(errno));
             close(g->sockets[i]);
             g->sockets[i] = -1;
             continue;
         }
+#endif
 
         res = bind(g->sockets[i], (struct sockaddr*)&sin, sizeof(sin));
         if (-1 == res) {

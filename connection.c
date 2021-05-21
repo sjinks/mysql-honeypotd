@@ -96,13 +96,19 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
     struct sockaddr sa;
     socklen_t len = sizeof(sa);
     if (revents & EV_READ) {
+#ifdef _GNU_SOURCE
+        int sock = accept4(w->fd, &sa, &len, SOCK_NONBLOCK);
+#else
         int sock = accept(w->fd, &sa, &len);
+#endif
         if (sock != -1) {
+#ifndef _GNU_SOURCE
             if (-1 == make_nonblocking(sock)) {
                 my_log(LOG_DAEMON | LOG_WARNING, "new_connection(): failed to make the accept()'ed socket non-blocking: %s", strerror(errno));
                 close(sock);
                 return;
             }
+#endif
 
             struct connection_t* conn = calloc(1, sizeof(struct connection_t));
             conn->loop  = loop;
