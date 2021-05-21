@@ -126,13 +126,9 @@ uint8_t* create_auth_failed(uint8_t seq, const uint8_t* user, const char* server
         0xFF, 0x00, 0x00, 0x03, 0xFF, 0x15, 0x04, '#',  '2',  '8',  '0',  '0',  '0'
     };
 
-    const char* error = "Access denied for user '%.48s'@'%s' (using password: %s)";
     char buf[4096];
 
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-    int n = snprintf(buf, 4096, error, user, server, use_pwd ? "YES" : "NO");
-    #pragma GCC diagnostic pop
+    int n = snprintf(buf, 4096, "Access denied for user '%.48s'@'%s' (using password: %s)", user, server, use_pwd ? "YES" : "NO");
     assert(n > 0 && n < 4096);
 
     uint8_t* result = calloc(1, sizeof(tpl) + (size_t)n);
