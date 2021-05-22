@@ -33,7 +33,7 @@ static int out_of_order(struct connection_t* conn, int mask)
 
     free(conn->buffer);
     conn->buffer = create_ooo_error(conn->sequence + 1);
-    conn->size   = (unsigned int)(conn->buffer[0]) + 4;
+    conn->size   = (unsigned int)load3(conn->buffer) + 4;
     conn->pos    = 0;
     conn->state  = WRITING_OOO;
     return handle_write(conn, mask, DONE);
@@ -42,7 +42,7 @@ static int out_of_order(struct connection_t* conn, int mask)
 int handle_new_connection(struct connection_t* conn, int mask)
 {
     conn->buffer = create_server_greeting(++globals.thread_id, globals.server_ver);
-    conn->size   = (unsigned int)(conn->buffer[0]) + 4;
+    conn->size   = (unsigned int)load3(conn->buffer) + 4;
     conn->pos    = 0;
     conn->state  = WRITING_GREETING;
 
@@ -213,7 +213,7 @@ static int do_auth(struct connection_t* conn, int mask)
 
             free(conn->buffer);
             conn->buffer      = create_auth_switch_request(conn->sequence + 1);
-            conn->size        = (unsigned int)(conn->buffer[0]) + 4;
+            conn->size        = (unsigned int)load3(conn->buffer) + 4;
             conn->pos         = 0;
             conn->state       = WRITING_ASR;
             conn->auth_failed = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
@@ -227,7 +227,7 @@ static int do_auth(struct connection_t* conn, int mask)
     free(conn->buffer);
     conn->buffer = tmp;
     conn->state  = SLEEPING;
-    conn->size   = (unsigned int)(conn->buffer[0]) + 4;
+    conn->size   = (unsigned int)load3(conn->buffer) + 4;
     conn->pos    = 0;
     ev_timer_start(conn->loop, &conn->delay);
     return EV_WRITE;
@@ -241,7 +241,7 @@ static int do_auth_asr(struct connection_t* conn, int mask)
     conn->auth_failed = NULL;
     conn->buffer[3]   = conn->sequence + 1;
     conn->state       = SLEEPING;
-    conn->size        = (unsigned int)(conn->buffer[0]) + 4;
+    conn->size        = (unsigned int)load3(conn->buffer) + 4;
     conn->pos         = 0;
     ev_timer_start(conn->loop, &conn->delay);
     return EV_WRITE;
@@ -267,8 +267,14 @@ static int handle_read(struct connection_t* conn, int mask, int(*callback)(struc
                 return EV_READ;
             }
 
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+            conn->sequence = (unsigned char)conn->length;
+            conn->size     = load3((uint8_t*)&conn->length);
+#else
             conn->sequence = (unsigned char)(conn->length >> 24);
             conn->size     = conn->length & 0x00FFFFFF;
+#endif
+
             conn->pos      = 0;
 
             if (conn->size > 4096) {

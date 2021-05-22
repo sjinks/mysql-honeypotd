@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "protocol.h"
+#include "byteutils.h"
 
 uint8_t* create_server_greeting(uint32_t thread_id, const char* server_ver)
 {
@@ -41,10 +42,10 @@ uint8_t* create_server_greeting(uint32_t thread_id, const char* server_ver)
     uint16_t pl_size = (uint16_t)(pkt_size - 4);
     uint8_t* result  = calloc(1, pkt_size);
 
-    memcpy(result,                                   &pl_size,   sizeof(pl_size));
+    store2(result, pl_size);
     memcpy(result + sizeof(pl_size),                 part1,      sizeof(part1));
     memcpy(result + sizeof(pl_size) + sizeof(part1), server_ver, ver_len);
-    memcpy(result + offset,                          &thread_id, sizeof(thread_id));
+    store4(result + offset, thread_id);
     memcpy(result + offset + 4 + 8,                  part2,      sizeof(part2));
 
     for (size_t i=0; i<8; ++i) {
@@ -133,7 +134,7 @@ uint8_t* create_auth_failed(uint8_t seq, const uint8_t* user, const char* server
 
     uint8_t* result = calloc(1, sizeof(tpl) + (size_t)n);
     uint16_t size   = (uint16_t)(sizeof(tpl) + (size_t)n - 4);
-    memcpy(result, &size, sizeof(size));
+    store2(result, size);
     memcpy(result + sizeof(size), tpl + sizeof(size), sizeof(tpl) - sizeof(size));
     memcpy(result + sizeof(tpl),  buf, (size_t)n);
 

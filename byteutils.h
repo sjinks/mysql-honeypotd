@@ -32,7 +32,7 @@ static inline uint32_t load3(const unsigned char* buf)
     uint32_t result = 0;
     memcpy(&result, buf, 3);
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return 
+    return
         ((result & 0xFF000000u) >> 24) |
         ((result & 0x00FF0000u) >>  8) |
         ((result & 0x0000FF00u) <<  8) |
@@ -47,7 +47,7 @@ static inline uint32_t load4(const unsigned char* buf)
     uint32_t result;
     memcpy(&result, buf, 4);
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return 
+    return
         ((result & 0xFF000000u) >> 24) |
         ((result & 0x00FF0000u) >>  8) |
         ((result & 0x0000FF00u) <<  8) |
@@ -62,7 +62,7 @@ static inline uint64_t load8(const unsigned char* buf)
     uint64_t result = 0;
     memcpy(&result, buf, 8);
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    return 
+    return
         ((result & 0xFF00000000000000ull) >> 56) |
         ((result & 0x00FF000000000000ull) >> 40) |
         ((result & 0x0000FF0000000000ull) >> 24) |
@@ -73,6 +73,27 @@ static inline uint64_t load8(const unsigned char* buf)
         ((result & 0x00000000000000FFull) << 56);
 #endif
     return result;
+}
+
+static inline void store2(unsigned char* buf, uint16_t v)
+{
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    v = ((v >> 8) & 0xFFu) | ((v & 0xFFu) << 8);
+#endif
+    memcpy(buf, &v, sizeof(v));
+}
+
+static inline void store4(unsigned char* buf, uint32_t v)
+{
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    v =
+        ((v & 0xFF000000u) >> 24) |
+        ((v & 0x00FF0000u) >>  8) |
+        ((v & 0x0000FF00u) <<  8) |
+        ((v & 0x000000FFu) << 24)
+    ;
+#endif
+    memcpy(buf, &v, sizeof(v));
 }
 
 #endif
