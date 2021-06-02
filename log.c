@@ -14,12 +14,12 @@ void my_log(int priority, const char *format, ...)
     if (globals.no_syslog) {
 #endif
         time_t now;
-        struct tm* timeinfo;
+        struct tm timeinfo;
         char timestring[32];
 
         time(&now);
-        timeinfo = localtime(&now);
-        strftime(timestring, sizeof(timestring), "%Y-%m-%d %H:%M:%S", timeinfo);
+        localtime_r(&now, &timeinfo);
+        strftime(timestring, sizeof(timestring), "%Y-%m-%d %H:%M:%S", &timeinfo);
         fprintf(
             stderr, "%s %s[%d]: ",
             timestring,
