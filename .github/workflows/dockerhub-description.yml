@@ -11,6 +11,8 @@ on:
 
 jobs:
   update-description:
+    permissions:
+      contents: read
     name: Update DockerHub description
     runs-on: ubuntu-latest
     if: ${{ !contains(github.event.head_commit.message, '[ci skip]') || github.event_name != 'push' }}
