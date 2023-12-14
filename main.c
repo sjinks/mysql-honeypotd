@@ -15,6 +15,7 @@
 #include "log.h"
 #include "pidfile.h"
 #include "utils.h"
+#include "sentmessage.h"
 
 static void cleanup(void)
 {
@@ -127,6 +128,5 @@ int main(int argc, char** argv)
 #endif
     create_socket(&globals);
     become_daemon(&globals);
-
     return main_loop(&globals);
 }

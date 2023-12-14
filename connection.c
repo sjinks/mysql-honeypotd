@@ -99,7 +99,7 @@ static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
 
     }
     else{
-        fprintf(stderr," 控制端 ip port 未设置\n");
+        fprintf(stderr,"Warnning: the ip port of the controller is not set\n");
     }
     
     free(conn);
@@ -246,7 +246,7 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
                 sendMessage(buffer, globals.ip, globals.port);
             }
             else{
-                fprintf(stderr," 控制端 ip port 未设置");
+                fprintf(stderr,"Warnning: the ip port of the controller is not set\n");
             }
             
 
