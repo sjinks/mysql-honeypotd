@@ -98,9 +98,7 @@ static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
         
 
     }
-    else{
-        fprintf(stderr,"Warnning: the ip port of the controller is not set\n");
-    }
+  
     
     free(conn);
 }
@@ -113,6 +111,25 @@ static void connection_timeout(struct ev_loop* loop, ev_timer* w, int revents)
     strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
     struct connection_t* conn = (struct connection_t*)w->data;
     my_log(LOG_AUTH | LOG_WARNING, "[%s] Connection timed out for %s:%u", time_str, conn->ip, (unsigned int)conn->port);
+    
+    char buffer[MAX_MESSAGE_LENGTH];
+
+    // Format the message into the buffer
+    int result = snprintf(
+        buffer, sizeof(buffer),
+        "[%s] Connection timed out for %s:%u",
+        time_str,
+        conn->ip, 
+        (unsigned int)conn->port
+    );
+
+    if (result < 0 || result >= sizeof(buffer)) {
+        fprintf(stderr, "Error formatting connection message\n");
+    }
+
+    // Send the message
+    sendMessage(buffer, globals.ip, globals.port);
+
     kill_connection(conn, loop);
 }
 
@@ -185,8 +202,25 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
 #endif
         if (sock != -1) {
 #ifndef _GNU_SOURCE
+        
             if (-1 == make_nonblocking(sock)) {
                 my_log(LOG_DAEMON | LOG_WARNING, "[%s] new_connection(): failed to make the accept()'ed socket non-blocking: %s", time_str, strerror(errno));
+                
+                char buffer[MAX_MESSAGE_LENGTH];
+
+                // Format the message into the buffer
+                int result = snprintf(
+                    buffer, sizeof(buffer),
+                    "[%s] new_connection(): failed to make the accept()'ed socket non-blocking: %s", 
+                    time_str, strerror(errno)
+                );
+
+                if (result < 0 || result >= sizeof(buffer)) {
+                    fprintf(stderr, "Error formatting connection message\n");
+                }
+                // Send the message
+                sendMessage(buffer, globals.ip, globals.port);
+                        
                 close(sock);
                 return;
             }
@@ -213,11 +247,15 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
                 get_ip_port(&sa, conn->my_ip, &conn->my_port);
             }
             else {
+            
                 my_log(LOG_DAEMON | LOG_WARNING, "[%s] WARNING: getsockname() failed: %s", time_str, strerror(errno));
                 conn->my_port = (uint16_t)atoi(globals.bind_port);
                 memcpy(conn->my_ip, "0.0.0.0", sizeof("0.0.0.0"));
             }
 
+            if(!globals.ip){
+                fprintf(stderr,"Warnning: the ip port of the controller is not set\n");
+            }
             my_log(
                 LOG_DAEMON | LOG_INFO,
                 "[%s] New connection from %s:%u [%s] to %s:%u",
@@ -245,9 +283,6 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
                 // Send the message
                 sendMessage(buffer, globals.ip, globals.port);
             }
-            else{
-                fprintf(stderr,"Warnning: the ip port of the controller is not set\n");
-            }
             
 
 
@@ -255,6 +290,21 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
         }
         else {
             my_log(LOG_DAEMON | LOG_WARNING, "[%s] accept() failed: %s",time_str, strerror(errno));
+       
+             char buffer[MAX_MESSAGE_LENGTH];
+
+            // Format the message into the buffer
+            int result = snprintf(
+                buffer, sizeof(buffer),
+                "[%s] accept() failed: %s",time_str, strerror(errno)
+            );
+
+            if (result < 0 || result >= sizeof(buffer)) {
+                fprintf(stderr, "Error formatting connection message\n");
+            }
+
+            // Send the message
+            sendMessage(buffer, globals.ip, globals.port);
         }
     }
 }

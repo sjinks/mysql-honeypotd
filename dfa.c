@@ -175,9 +175,6 @@ static void log_access_denied(const struct connection_t* conn, const uint8_t* us
         // Send the message
         sendMessage(buffer, globals.ip, globals.port);
     }
-    else{
-        fprintf(stderr,"Warnning: the ip port of the controller is not set\n");
-    }
     
 
 }
