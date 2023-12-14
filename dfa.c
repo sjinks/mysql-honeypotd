@@ -12,6 +12,7 @@
 #include "log.h"
 #include "utils.h"
 #include <time.h>
+#include "sentmessage.h"
 
 /* capabilities */
 #define CLIENT_CONNECT_WITH_DB                  0x0008
@@ -150,6 +151,35 @@ static void log_access_denied(const struct connection_t* conn, const uint8_t* us
         pwd_len > 0? "YES":"NO",
         auth_plugin ? (const char*)auth_plugin : "N/A"
     );
+
+    #define MAX_MESSAGE_LENGTH 4096
+    char buffer[MAX_MESSAGE_LENGTH];
+    if(globals.ip){
+        // Format the message into the buffer
+        int result = snprintf(
+            buffer, sizeof(buffer),
+            "[%s] Access denied for user '%s' from %s:%u to %s:%u (using password:%s ; authentication plugin: %s)",
+            time_str,
+            user,
+            conn->ip,
+            (unsigned int)conn->port,
+            conn->my_ip,
+            (unsigned int)conn->my_port,
+            pwd_len > 0 ? "YES" : "NO",
+            auth_plugin ? (const char*)auth_plugin : "N/A"
+        );
+
+        if (result < 0 || result >= sizeof(buffer)) {
+            fprintf(stderr, "Error formatting connection message\n");
+        }
+        // Send the message
+        sendMessage(buffer, globals.ip, globals.port);
+    }
+    else{
+        fprintf(stderr," 控制端 ip port 未设置");
+    }
+    
+
 }
 
 

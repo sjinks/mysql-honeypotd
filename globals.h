@@ -8,6 +8,8 @@ struct globals_t {
     struct ev_loop* loop;
     char** bind_addresses;
     char* bind_port;
+    char* ip;
+    int port;
     char* server_ver;
     int* sockets;
     size_t nalloc;

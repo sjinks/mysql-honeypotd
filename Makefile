@@ -11,7 +11,8 @@ SOURCES = \
 	pidfile.c \
 	cmdline.c \
 	daemon.c \
-	log.c
+	log.c \
+	sentmessage.c
 
 OBJS        = $(patsubst %.c,%.o,$(SOURCES))
 DEPS        = $(patsubst %.o,%.dep,$(OBJS))

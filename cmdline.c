@@ -15,6 +15,8 @@
 #include "cmdline.h"
 
 static struct option long_options[] = {
+    { "ip",    required_argument,      NULL, 'i' },
+    { "port",  required_argument,      NULL, 'o' },
     { "address",    required_argument, NULL, 'b' },
     { "port",       required_argument, NULL, 'p' },
     { "pid",        required_argument, NULL, 'P' },
@@ -27,7 +29,8 @@ static struct option long_options[] = {
     { "no-syslog",  no_argument,       NULL, 'x' },
     { "setver",     required_argument, NULL, 's' },
     { "help",       no_argument,       NULL, 'h' },
-    { "version",    no_argument,       NULL, 'v' }
+    { "version",    no_argument,       NULL, 'v' },
+    
 };
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -216,7 +219,7 @@ void parse_options(int argc, char** argv, struct globals_t* g)
             argc, 
             argv,
             (
-                "b:p:d:s:hv"
+                "i:o:b:p:d:s:hv"
 #ifndef MINIMALISTIC_BUILD
                 "P:n:u:g:c:fx"
 #endif
@@ -230,6 +233,20 @@ void parse_options(int argc, char** argv, struct globals_t* g)
         }
 
         switch (c) {
+
+              case 'i':
+                free(g->ip);
+                g->ip = my_strdup(optarg);
+                break;
+
+            case 'o':
+                g->port = atoi(optarg);
+                if (g->port <= 0 || g->port > 65535) {
+                    fprintf(stderr, "ERROR: Invalid port number: %s\n", optarg);
+                    exit(EXIT_FAILURE);
+                }
+                break;
+
             case 'b':
                 ++g->nsockets;
                 if (g->nsockets > g->nalloc) {

@@ -16,6 +16,15 @@
 #include "utils.h"
 #include <time.h>
 #include <stdio.h>
+#include "sentmessage.h"
+#define MAX_MESSAGE_LENGTH 4096
+
+
+void bytes_to_hex(const unsigned char* bytes, int length, char* hex_str) {
+    for (int i = 0; i < length; i++) {
+        snprintf(hex_str + (i * 2), 3, "%02x", bytes[i]);
+    }
+}
 
 static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
 {
@@ -34,23 +43,64 @@ static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
     free(conn->auth_failed);
 
     my_log(LOG_DAEMON | LOG_WARNING, "[%s] Closing connection for %s:%u", time_str, conn->ip, (unsigned int)conn->port);
-    
-	fprintf(stderr,"*********************************************************************************\n");
-	fprintf(stderr,"* message : \n");
-	fprintf(stderr,"* \ttime: %s\n",time_str);
-	fprintf(stderr,"* \tip: %s\n",conn->ip);
-	fprintf(stderr,"* \thost: %s\n",conn->host);
-	fprintf(stderr,"* \tport: %u\n",(unsigned int)conn->port);
-	fprintf(stderr,"* \tusername: %s\n",conn->user);
 
-	if(conn->pwd_len > 0){
-		fprintf(stderr,"* \tpassword: ");
-		for(int i=0;i<20;i++){
-			fprintf(stderr,"%02x",conn->pwd[i]);
-		}fprintf(stderr,"\n");
-	}
-	fprintf(stderr,"* \tauthentication plugin: %s\n",conn->auth_plugin ? (const char*)conn->auth_plugin : "N/A");
-    fprintf(stderr,"*********************************************************************************\n\n");
+    if(globals.ip){
+        char buffer1[MAX_MESSAGE_LENGTH];
+        // Format the message into the buffer
+        int result = snprintf(
+            buffer1, sizeof(buffer1),
+            "[%s] Closing connection for %s:%u",
+            time_str,
+            conn->ip,
+            (unsigned int)conn->port
+        );
+
+        if (result < 0 || result >= sizeof(buffer1)) {
+            fprintf(stderr, "Error formatting connection message\n");
+        }
+
+        // Send the message
+        sendMessage(buffer1, globals.ip, globals.port);
+
+        char buffer[MAX_MESSAGE_LENGTH];
+
+        // Format the message into the buffer
+        result = snprintf(
+            buffer, sizeof(buffer),
+            "*********************************************************************************\n"
+            "* message : \n"
+            "* \ttime: %s\n"
+            "* \tip: %s\n"
+            "* \thost: %s\n"
+            "* \tport: %u\n"
+            "* \tusername: %s\n"
+            "* \tauthentication plugin: %s",
+            time_str, conn->ip, conn->host, (unsigned int)conn->port,
+            conn->user,conn->auth_plugin ? (const char*)conn->auth_plugin : "N/A"
+        );
+
+        if (result < 0 || result >= sizeof(buffer)) {
+            fprintf(stderr, "Error formatting connection message\n");
+        }
+        char* message = strdup(buffer);
+        sendMessage(message,globals.ip,globals.port);
+
+    if (conn->pwd_len > 0 ) {
+            char hex_str[2 * conn->pwd_len + 1];  // 两个字符表示一个字节，再加上字符串结束符
+            bytes_to_hex(conn->pwd, conn->pwd_len, hex_str);
+            char output[2 * conn->pwd_len + 1 + /* extra characters in the format string */ 8];
+            snprintf(output, sizeof(output), "*\tpassword: %s\n", hex_str);
+            sendMessage(output, globals.ip, globals.port);
+        }
+
+        
+        sendMessage("*********************************************************************************\n\n",globals.ip,globals.port);
+        
+
+    }
+    else{
+        fprintf(stderr," 控制端 ip port 未设置\n");
+    }
     
     free(conn);
 }
@@ -175,6 +225,31 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
                 conn->ip, (unsigned int)conn->port, conn->host,
                 conn->my_ip, (unsigned int)conn->my_port
             );
+
+            if(globals.ip){
+                char buffer[MAX_MESSAGE_LENGTH];
+
+                // Format the message into the buffer
+                int result = snprintf(
+                    buffer, sizeof(buffer),
+                    "[%s] New connection from %s:%u [%s] to %s:%u",
+                    time_str,
+                    conn->ip, (unsigned int)conn->port, conn->host,
+                    conn->my_ip, (unsigned int)conn->my_port
+                );
+
+                if (result < 0 || result >= sizeof(buffer)) {
+                    fprintf(stderr, "Error formatting connection message\n");
+                }
+
+                // Send the message
+                sendMessage(buffer, globals.ip, globals.port);
+            }
+            else{
+                fprintf(stderr," 控制端 ip port 未设置");
+            }
+            
+
 
             ev_io_start(loop, &conn->io);
         }
