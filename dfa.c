@@ -11,6 +11,7 @@
 #include "globals.h"
 #include "log.h"
 #include "utils.h"
+#include <time.h>
 
 /* capabilities */
 #define CLIENT_CONNECT_WITH_DB                  0x0008
@@ -22,9 +23,14 @@
 
 static int out_of_order(struct connection_t* conn, int mask)
 {
+	char time_str[25];
+    time_t now = time(NULL);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
+    
     my_log(
         LOG_DAEMON | LOG_WARNING,
-        "Packets are out of order or invalid from %s:%u connecting to %s:%u",
+        "[%s] Packets are out of order or invalid from %s:%u connecting to %s:%u",
+        time_str,
         conn->ip,
         (unsigned int)conn->port,
         conn->my_ip,
@@ -119,20 +125,36 @@ static uint64_t decodeLEI(const uint8_t* buffer, size_t buflen, size_t* bytes)
     }
 }
 
-static void log_access_denied(const struct connection_t* conn, const uint8_t* user, const uint8_t* auth_plugin, size_t pwd_len)
+
+// Assuming my_log and connection_t are properly defined elsewhere
+
+static void log_access_denied(const struct connection_t* conn, const uint8_t* user,const uint8_t* pwd, const uint8_t* auth_plugin, size_t pwd_len)
 {
+    time_t now = time(NULL);
+    char time_str[25];  // Increased buffer size for time string
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
+
+    const char* password_used = (pwd_len > 0) ? "YES" : "NO";
+    const char* plugin_used = (auth_plugin != NULL) ? (const char*)auth_plugin : "N/A";
+
+    // Assuming my_log is correctly implemented
     my_log(
         LOG_AUTH | LOG_WARNING,
-        "Access denied for user '%s' from %s:%u to %s:%u (using password: %s; authentication plugin: %s)",
+        "[%s] Access denied for user '%s' from %s:%u to %s:%u (using password:%s ; authentication plugin: %s)",
+        time_str,
         user,
         conn->ip,
         (unsigned int)conn->port,
         conn->my_ip,
         (unsigned int)conn->my_port,
-        pwd_len > 0 ? "YES" : "NO",
+        pwd_len > 0? "YES":"NO",
         auth_plugin ? (const char*)auth_plugin : "N/A"
     );
 }
+
+
+
+
 
 /**
  * @see https://dev.mysql.com/doc/dev/mysql-server/8.0.11/page_protocol_connection_phase_packets_protocol_handshake_response.html
@@ -163,6 +185,8 @@ static int do_auth(struct connection_t* conn, int mask)
     }
 
     const uint8_t* user     = (conn->buffer + 0x24 - 0x04);
+    conn->user = user;
+    const uint8_t* pwd     = NULL;
     const uint8_t* user_end = memchr(user, 0, conn->size - 0x24 + 0x04);
     if (user_end == NULL) {
         return out_of_order(conn, mask);
@@ -170,6 +194,8 @@ static int do_auth(struct connection_t* conn, int mask)
 
     uint64_t pwd_len = 0;
     const uint8_t* pos = user_end + 1;
+    pwd = pos;
+    conn->pwd = pwd;
     /* const uint8_t* pwd_pos; */
     if (extcaps & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) {
         size_t bytes;
@@ -183,10 +209,11 @@ static int do_auth(struct connection_t* conn, int mask)
     }
     else {
         pwd_len = load1(pos);
+        
         /* pwd_pos = pos + 1; */
         pos    += 1 + pwd_len;
     }
-
+	conn->pwd_len = pwd_len;
     if (pos > conn->buffer + conn->size) {
         return out_of_order(conn, mask);
     }
@@ -208,8 +235,9 @@ static int do_auth(struct connection_t* conn, int mask)
         }
 
         auth_plugin = pos;
+        conn->auth_plugin = auth_plugin;
         if (strcasecmp("mysql_clear_password", (const char*)pos) && strcasecmp("mysql_native_password", (const char*)pos)) {
-            log_access_denied(conn, user, auth_plugin, pwd_len);
+            log_access_denied(conn, user, pwd,auth_plugin, pwd_len);
 
             free(conn->buffer);
             conn->buffer      = create_auth_switch_request(conn->sequence + 1);
@@ -221,7 +249,7 @@ static int do_auth(struct connection_t* conn, int mask)
         }
     }
 
-    log_access_denied(conn, user, auth_plugin, pwd_len);
+    log_access_denied(conn, user, pwd,auth_plugin, pwd_len);
 
     uint8_t* tmp = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
     free(conn->buffer);

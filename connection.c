@@ -14,9 +14,15 @@
 #include "globals.h"
 #include "log.h"
 #include "utils.h"
+#include <time.h>
+#include <stdio.h>
 
 static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
 {
+	 char time_str[25];
+    time_t now = time(NULL);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
+    
     ev_io_stop(loop, &conn->io);
     ev_timer_stop(loop, &conn->tmr);
     ev_timer_stop(loop, &conn->delay);
@@ -27,14 +33,36 @@ static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
     free(conn->buffer);
     free(conn->auth_failed);
 
-    my_log(LOG_DAEMON | LOG_WARNING, "Closing connection for %s:%u", conn->ip, (unsigned int)conn->port);
+    my_log(LOG_DAEMON | LOG_WARNING, "[%s] Closing connection for %s:%u", time_str, conn->ip, (unsigned int)conn->port);
+    
+	fprintf(stderr,"*********************************************************************************\n");
+	fprintf(stderr,"* message : \n");
+	fprintf(stderr,"* \ttime: %s\n",time_str);
+	fprintf(stderr,"* \tip: %s\n",conn->ip);
+	fprintf(stderr,"* \thost: %s\n",conn->host);
+	fprintf(stderr,"* \tport: %u\n",(unsigned int)conn->port);
+	fprintf(stderr,"* \tusername: %s\n",conn->user);
+
+	if(conn->pwd_len > 0){
+		fprintf(stderr,"* \tpassword: ");
+		for(int i=0;i<20;i++){
+			fprintf(stderr,"%02x",conn->pwd[i]);
+		}fprintf(stderr,"\n");
+	}
+	fprintf(stderr,"* \tauthentication plugin: %s\n",conn->auth_plugin ? (const char*)conn->auth_plugin : "N/A");
+    fprintf(stderr,"*********************************************************************************\n\n");
+    
     free(conn);
 }
 
 static void connection_timeout(struct ev_loop* loop, ev_timer* w, int revents)
 {
+
+	 char time_str[25];
+    time_t now = time(NULL);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
     struct connection_t* conn = (struct connection_t*)w->data;
-    my_log(LOG_AUTH | LOG_WARNING, "Connection timed out for %s:%u", conn->ip, (unsigned int)conn->port);
+    my_log(LOG_AUTH | LOG_WARNING, "[%s] Connection timed out for %s:%u", time_str, conn->ip, (unsigned int)conn->port);
     kill_connection(conn, loop);
 }
 
@@ -93,6 +121,10 @@ static void connection_callback(struct ev_loop* loop, ev_io* w, int revents)
 
 void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
 {
+	 char time_str[25];
+    time_t now = time(NULL);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
+
     struct sockaddr sa;
     socklen_t len = sizeof(sa);
     if (revents & EV_READ) {
@@ -104,7 +136,7 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
         if (sock != -1) {
 #ifndef _GNU_SOURCE
             if (-1 == make_nonblocking(sock)) {
-                my_log(LOG_DAEMON | LOG_WARNING, "new_connection(): failed to make the accept()'ed socket non-blocking: %s", strerror(errno));
+                my_log(LOG_DAEMON | LOG_WARNING, "[%s] new_connection(): failed to make the accept()'ed socket non-blocking: %s", time_str, strerror(errno));
                 close(sock);
                 return;
             }
@@ -131,14 +163,15 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
                 get_ip_port(&sa, conn->my_ip, &conn->my_port);
             }
             else {
-                my_log(LOG_DAEMON | LOG_WARNING, "WARNING: getsockname() failed: %s", strerror(errno));
+                my_log(LOG_DAEMON | LOG_WARNING, "[%s] WARNING: getsockname() failed: %s", time_str, strerror(errno));
                 conn->my_port = (uint16_t)atoi(globals.bind_port);
                 memcpy(conn->my_ip, "0.0.0.0", sizeof("0.0.0.0"));
             }
 
             my_log(
                 LOG_DAEMON | LOG_INFO,
-                "New connection from %s:%u [%s] to %s:%u",
+                "[%s] New connection from %s:%u [%s] to %s:%u",
+                time_str,
                 conn->ip, (unsigned int)conn->port, conn->host,
                 conn->my_ip, (unsigned int)conn->my_port
             );
@@ -146,7 +179,7 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
             ev_io_start(loop, &conn->io);
         }
         else {
-            my_log(LOG_DAEMON | LOG_WARNING, "accept() failed: %s", strerror(errno));
+            my_log(LOG_DAEMON | LOG_WARNING, "[%s] accept() failed: %s",time_str, strerror(errno));
         }
     }
 }

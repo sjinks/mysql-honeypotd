@@ -37,6 +37,10 @@ struct connection_t {
     char ip[INET6_ADDRSTRLEN];
     char my_ip[INET6_ADDRSTRLEN];
     char host[NI_MAXHOST];
+    const uint8_t* user;
+    const uint8_t* pwd;
+    const uint8_t* auth_plugin;
+    size_t pwd_len;
 };
 #pragma clang diagnostic pop
 
