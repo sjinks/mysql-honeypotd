@@ -35,7 +35,7 @@ Mandatory arguments to long options are mandatory for short options too.
   2. PID file can be outside of chroot
   3. When using `--name` and/or `--group`, please make sure that the PID file can be deleted by the target user
 
-controller.py
+controller.py example 
 ```
 import socket
 
