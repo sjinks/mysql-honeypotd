@@ -44,7 +44,7 @@ static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
 
     my_log(LOG_DAEMON | LOG_WARNING, "[%s] Closing connection for %s:%u", time_str, conn->ip, (unsigned int)conn->port);
 
-    if(globals.ip){
+    if(globals.ip && globals.port){
         char buffer1[MAX_MESSAGE_LENGTH];
         // Format the message into the buffer
         int result = snprintf(
@@ -253,7 +253,7 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
                 memcpy(conn->my_ip, "0.0.0.0", sizeof("0.0.0.0"));
             }
 
-            if(!globals.ip){
+            if(!(globals.ip && globals.port)){
                 fprintf(stderr,"Warnning: the ip port of the controller is not set\n");
             }
             my_log(
@@ -264,7 +264,7 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
                 conn->my_ip, (unsigned int)conn->my_port
             );
 
-            if(globals.ip){
+            if(globals.ip && globals.port){
                 char buffer[MAX_MESSAGE_LENGTH];
 
                 // Format the message into the buffer
