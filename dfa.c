@@ -154,7 +154,7 @@ static void log_access_denied(const struct connection_t* conn, const uint8_t* us
 
     #define MAX_MESSAGE_LENGTH 4096
     char buffer[MAX_MESSAGE_LENGTH];
-    if(globals.ip && global.port){
+    if(globals.ip && globals.port){
         // Format the message into the buffer
         int result = snprintf(
             buffer, sizeof(buffer),
