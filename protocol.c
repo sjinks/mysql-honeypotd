@@ -128,12 +128,14 @@ uint8_t* create_auth_failed(uint8_t seq, const uint8_t* user, const char* server
     };
 
     char buf[4096];
+    uint8_t* result;
+    uint16_t size;
 
     int n = snprintf(buf, 4096, "Access denied for user '%.48s'@'%s' (using password: %s)", user, server, use_pwd ? "YES" : "NO");
     assert(n > 0 && n < 4096);
 
-    uint8_t* result = calloc(1, sizeof(tpl) + (size_t)n);
-    uint16_t size   = (uint16_t)(sizeof(tpl) + (size_t)n - 4);
+    result = calloc(1, sizeof(tpl) + (size_t)n);
+    size   = (uint16_t)(sizeof(tpl) + (size_t)n - 4);
     store2(result, size);
     memcpy(result + sizeof(size), tpl + sizeof(size), sizeof(tpl) - sizeof(size));
     memcpy(result + sizeof(tpl),  buf, (size_t)n);

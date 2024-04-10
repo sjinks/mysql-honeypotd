@@ -233,8 +233,9 @@ void parse_options(int argc, char** argv, struct globals_t* g)
             case 'b':
                 ++g->nsockets;
                 if (g->nsockets > g->nalloc) {
+                    char** tmp;
                     g->nalloc += 16;
-                    char** tmp = realloc(g->bind_addresses, g->nalloc * sizeof(char*));
+                    tmp = realloc(g->bind_addresses, g->nalloc * sizeof(char*));
                     check_alloc(tmp, "realloc");
                     g->bind_addresses = tmp;
                 }

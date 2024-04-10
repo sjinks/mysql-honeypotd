@@ -8,15 +8,14 @@
 void my_log(int priority, const char *format, ...)
 {
     va_list ap;
+    time_t now;
+    struct tm timeinfo;
+    char timestring[32];
     va_start(ap, format);
 
 #ifndef MINIMALISTIC_BUILD
     if (globals.no_syslog) {
 #endif
-        time_t now;
-        struct tm timeinfo;
-        char timestring[32];
-
         time(&now);
         localtime_r(&now, &timeinfo);
         strftime(timestring, sizeof(timestring), "%Y-%m-%d %H:%M:%S", &timeinfo);

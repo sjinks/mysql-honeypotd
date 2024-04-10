@@ -156,20 +156,25 @@ static int do_auth(struct connection_t* conn, int mask)
 
     uint16_t caps    = load2(conn->buffer + 0x04 - 0x04);
     uint16_t extcaps = load2(conn->buffer + 0x06 - 0x04);
+    const uint8_t* user;
+    const uint8_t* user_end;
+    uint64_t pwd_len = 0;
+    const uint8_t* pos;
+    const uint8_t* auth_plugin = NULL;
+    uint8_t* tmp;
 
     if ((caps & CLIENT_PROTOCOL_41) == 0) {
         /* We do not support the old HandshakeResponse320 yet */
         return out_of_order(conn, mask);
     }
 
-    const uint8_t* user     = (conn->buffer + 0x24 - 0x04);
-    const uint8_t* user_end = memchr(user, 0, conn->size - 0x24 + 0x04);
+    user     = (conn->buffer + 0x24 - 0x04);
+    user_end = memchr(user, 0, conn->size - 0x24 + 0x04);
     if (user_end == NULL) {
         return out_of_order(conn, mask);
     }
 
-    uint64_t pwd_len = 0;
-    const uint8_t* pos = user_end + 1;
+    pos = user_end + 1;
     /* const uint8_t* pwd_pos; */
     if (extcaps & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) {
         size_t bytes;
@@ -200,7 +205,6 @@ static int do_auth(struct connection_t* conn, int mask)
         pos = schema_end + 1;
     }
 
-    const uint8_t* auth_plugin = NULL;
     if (extcaps & CLIENT_PLUGIN_AUTH) {
         const uint8_t* plugin_end = memchr(pos, 0, (size_t)(conn->buffer + conn->size - pos));
         if (plugin_end == NULL) {
@@ -223,7 +227,7 @@ static int do_auth(struct connection_t* conn, int mask)
 
     log_access_denied(conn, user, auth_plugin, pwd_len);
 
-    uint8_t* tmp = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
+    tmp = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
     free(conn->buffer);
     conn->buffer = tmp;
     conn->state  = SLEEPING;
