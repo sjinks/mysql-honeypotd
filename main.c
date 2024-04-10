@@ -26,6 +26,7 @@ static void create_socket(struct globals_t* g)
     size_t good = 0;
     const int on = 1;
     int res;
+    uint16_t port;
 
     union {
         struct sockaddr sa;
@@ -39,7 +40,7 @@ static void create_socket(struct globals_t* g)
         exit(EXIT_FAILURE);
     }
 
-    uint16_t port = htons((uint16_t)atoi(g->bind_port));
+    port = (uint16_t)atoi(g->bind_port);
     for (size_t i=0; i<g->nsockets; ++i) {
         memset(&sin, 0, sizeof(sin));
         if (inet_pton(AF_INET, g->bind_addresses[i], &sin.sa_in.sin_addr) == 1) {
