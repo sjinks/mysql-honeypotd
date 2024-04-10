@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
 
       - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@616d1b63e806b630b975af3b4fe3304307b20f40 # v2.4.3
+        uses: peter-evans/dockerhub-description@e98e4d1628a5f3be2be7c231e50981aee98723ae # v4.0.0
         with:
           username: ${{ secrets.DOCKER_LOGIN }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -30,7 +30,7 @@ jobs:
           short-description: A low-interaction MySQL honeypot
 
       - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@616d1b63e806b630b975af3b4fe3304307b20f40 # v2.4.3
+        uses: peter-evans/dockerhub-description@e98e4d1628a5f3be2be7c231e50981aee98723ae # v4.0.0
         with:
           username: ${{ secrets.DOCKER_LOGIN }}
           password: ${{ secrets.DOCKER_PASSWORD }}
