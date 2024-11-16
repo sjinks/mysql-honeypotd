@@ -1,4 +1,4 @@
-FROM alpine:3.20@sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d AS deps
+FROM alpine:3.20@sha256:1e42bbe2508154c9126d48c2b8a75420c3544343bf86fd041fb7527e017a4b4a AS deps
 RUN apk add --no-cache gcc make libc-dev libev-dev
 WORKDIR /src/mysql-honeypotd
 COPY . /src/mysql-honeypotd
@@ -16,7 +16,7 @@ ENV \
     LDFLAGS="-static"
 RUN make && strip mysql-honeypotd
 
-FROM alpine:3.20@sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d AS release-dynamic
+FROM alpine:3.20@sha256:1e42bbe2508154c9126d48c2b8a75420c3544343bf86fd041fb7527e017a4b4a AS release-dynamic
 RUN apk add --no-cache libev
 COPY --from=build-dynamic /src/mysql-honeypotd/mysql-honeypotd /usr/bin/mysql-honeypotd
 EXPOSE 3306
