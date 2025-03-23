@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <errno.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
@@ -25,7 +26,7 @@ int safe_accept(int fd, struct sockaddr* addr, socklen_t* addrlen)
     int res;
     do {
         res = accept(fd, addr, addrlen);
-    } while (-1 == res && (EINTR == errno));
+    } while (-1 == res && EINTR == errno);
 
     return res;
 }
@@ -58,25 +59,19 @@ ssize_t safe_write(int fd, const void* buf, size_t count)
     return n;
 }
 
-void get_ip_port(const struct sockaddr* addr, char* ipstr, uint16_t* port)
+void get_ip_port(const struct sockaddr_storage* addr, char* ipstr, uint16_t* port)
 {
     assert(addr  != NULL);
     assert(ipstr != NULL);
     assert(port  != NULL);
 
-    if (addr->sa_family == AF_INET) {
-        #pragma clang diagnostic push
-        #pragma clang diagnostic ignored "-Wcast-align"
+    if (addr->ss_family == AF_INET) {
         const struct sockaddr_in* s = (const struct sockaddr_in*)addr;
-        #pragma clang diagnostic pop
         *port = ntohs(s->sin_port);
         inet_ntop(AF_INET, &s->sin_addr, ipstr, INET6_ADDRSTRLEN);
     }
-    else if (addr->sa_family == AF_INET6) {
-        #pragma clang diagnostic push
-        #pragma clang diagnostic ignored "-Wcast-align"
+    else if (addr->ss_family == AF_INET6) {
         const struct sockaddr_in6* s = (const struct sockaddr_in6*)addr;
-        #pragma clang diagnostic pop
         *port = ntohs(s->sin6_port);
         inet_ntop(AF_INET6, &s->sin6_addr, ipstr, INET6_ADDRSTRLEN);
     }

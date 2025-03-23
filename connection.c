@@ -93,13 +93,13 @@ static void connection_callback(struct ev_loop* loop, ev_io* w, int revents)
 
 void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
 {
-    struct sockaddr sa;
+    struct sockaddr_storage sa;
     socklen_t len = sizeof(sa);
     if (revents & EV_READ) {
 #ifdef _GNU_SOURCE
-        int sock = accept4(w->fd, &sa, &len, SOCK_NONBLOCK);
+        int sock = accept4(w->fd, (struct sockaddr*)&sa, &len, SOCK_NONBLOCK);
 #else
-        int sock = accept(w->fd, &sa, &len);
+        int sock = accept(w->fd, (struct sockaddr*)&sa, &len);
 #endif
         if (sock != -1) {
             struct connection_t* conn;
@@ -123,13 +123,13 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
             conn->delay.data = conn;
 
             get_ip_port(&sa, conn->ip, &conn->port);
-            if (0 != getnameinfo(&sa, len, conn->host, sizeof(conn->host), NULL, 0, 0)) {
+            if (0 != getnameinfo((const struct sockaddr*)&sa, len, conn->host, sizeof(conn->host), NULL, 0, 0)) {
                 assert(INET6_ADDRSTRLEN < NI_MAXHOST);
                 memcpy(conn->host, conn->ip, INET6_ADDRSTRLEN);
             }
 
             len = sizeof(sa);
-            if (-1 != getsockname(sock, &sa, &len)) {
+            if (-1 != getsockname(sock, (struct sockaddr*)&sa, &len)) {
                 get_ip_port(&sa, conn->my_ip, &conn->my_port);
             }
             else {

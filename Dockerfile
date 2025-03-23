@@ -1,17 +1,17 @@
 FROM alpine:3.21@sha256:56fa17d2a7e7f168a043a2712e63aed1f8543aeafdcee47c58dcffe38ed51099 AS deps
-RUN apk add --no-cache gcc make libc-dev libev-dev
+RUN apk add --no-cache gcc libc-dev libev-dev make
 WORKDIR /src/mysql-honeypotd
 COPY . /src/mysql-honeypotd
 
 FROM deps AS build-dynamic
 ENV \
-    CFLAGS="-Os -g0 -Wall -Wextra -Wno-unknown-pragmas -fvisibility=hidden -fno-strict-aliasing -Wno-unused-parameter" \
+    CFLAGS="-Os -g0 -Wall -Wextra -Wno-unknown-pragmas -fvisibility=hidden -Wno-unused-parameter" \
     CPPFLAGS="-D_DEFAULT_SOURCE"
 RUN make && strip mysql-honeypotd
 
 FROM deps AS build-static
 ENV \
-    CFLAGS="-Os -g0 -Wall -Wextra -Wno-unknown-pragmas -fvisibility=hidden -fno-strict-aliasing -Wno-unused-parameter" \
+    CFLAGS="-Os -g0 -Wall -Wextra -Wno-unknown-pragmas -fvisibility=hidden -Wno-unused-parameter" \
     CPPFLAGS="-D_DEFAULT_SOURCE -DMINIMALISTIC_BUILD" \
     LDFLAGS="-static"
 RUN make && strip mysql-honeypotd
