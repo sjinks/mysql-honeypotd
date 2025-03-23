@@ -16,9 +16,9 @@ jobs:
       matrix:
         COMPILER:
           - CC: gcc
-            CFLAGS: -O2 -Wall -Wextra -Werror -Wno-unknown-pragmas -Wno-unused-parameter -fvisibility=hidden -fno-strict-aliasing
+            CFLAGS: -O2 -Wall -Wextra -Werror -Wno-unknown-pragmas -Wno-unused-parameter -fvisibility=hidden
           - CC: clang
-            CFLAGS: -O2 -Weverything -Werror -Wno-unknown-warning-option -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unsafe-buffer-usage -Wno-strict-prototypes -Wno-switch-default -fvisibility=hidden -fno-strict-aliasing
+            CFLAGS: -O2 -Weverything -Werror -Wno-unknown-warning-option -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unsafe-buffer-usage -Wno-strict-prototypes -Wno-switch-default -fvisibility=hidden
         CPPFLAGS:
           - ""
           - "-DMINIMALISTIC_BUILD"
