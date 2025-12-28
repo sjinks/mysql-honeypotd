@@ -11,32 +11,26 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   docker:
     permissions:
       contents: read
     name: Build Docker image
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        flavor:
-          - target: release-dynamic
-            image: wildwildangel/mysql-honeypotd
-          - target: release-static
-            image: wildwildangel/mysql-honeypotd-min
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
       - name: Set up Docker Metadata
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
-          images: ${{ matrix.flavor.image }}
+          images: |
+            wildwildangel/mysql-honeypotd
+            wildwildangel/mysql-honeypotd-min
           tags: |
             type=edge
             type=ref,event=pr
