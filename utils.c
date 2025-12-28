@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -19,16 +19,6 @@ int make_nonblocking(int fd)
     }
 
     return -1;
-}
-
-int safe_accept(int fd, struct sockaddr* addr, socklen_t* addrlen)
-{
-    int res;
-    do {
-        res = accept(fd, addr, addrlen);
-    } while (-1 == res && EINTR == errno);
-
-    return res;
 }
 
 ssize_t safe_read(int fd, void* buf, size_t count)
@@ -59,12 +49,13 @@ ssize_t safe_write(int fd, const void* buf, size_t count)
     return n;
 }
 
+/**
+ * `addr` must not be `NULL`
+ * `ipstr` must not be `NULL` and must have at least INET6_ADDRSTRLEN bytes allocated
+ * `port` must not be `NULL`
+ */
 void get_ip_port(const struct sockaddr_storage* addr, char* ipstr, uint16_t* port)
 {
-    assert(addr  != NULL);
-    assert(ipstr != NULL);
-    assert(port  != NULL);
-
     if (addr->ss_family == AF_INET) {
         const struct sockaddr_in* s = (const struct sockaddr_in*)addr;
         *port = ntohs(s->sin_port);
@@ -79,6 +70,22 @@ void get_ip_port(const struct sockaddr_storage* addr, char* ipstr, uint16_t* por
         /* Should not happen */
         *ipstr = '\0';
         *port  = 0;
-        assert(0);
     }
+}
+
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || (defined(__GLIBC__) && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 36)))
+#   define HAVE_ARC4RANDOM 1
+#endif
+
+void fill_random(uint8_t* buffer, size_t length)
+{
+#ifdef HAVE_ARC4RANDOM
+    arc4random_buf(buffer, length);
+#else
+    while (length > 0) {
+        *buffer = (uint8_t)rand();
+        ++buffer;
+        --length;
+    }
+#endif
 }

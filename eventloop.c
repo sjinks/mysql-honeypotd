@@ -8,9 +8,11 @@
 #include "globals.h"
 #include "log.h"
 
+static sig_atomic_t signum = -1;
+
 static void signal_callback(struct ev_loop* loop, ev_signal* w, int revents)
 {
-    my_log(LOG_DAEMON | LOG_INFO, "Got signal %d, shutting down", w->signum);
+    signum = w->signum;
     ev_break(loop, EVBREAK_ALL);
 }
 
@@ -42,6 +44,11 @@ int main_loop(struct globals_t* g)
     }
 
     ev_run(g->loop, 0);
+
+    if (signum != -1) {
+        my_log(LOG_DAEMON | LOG_INFO, "Got signal %d, shutting down", (int)signum);
+    }
+
     for (size_t i=0; i<g->nsockets; ++i) {
         if (accept_watchers[i].fd != -1) {
             ev_io_stop(g->loop, &accept_watchers[i]);

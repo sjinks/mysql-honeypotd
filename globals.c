@@ -1,10 +1,10 @@
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 #include <ev.h>
 #include "globals.h"
@@ -14,6 +14,8 @@ struct globals_t globals;
 
 void init_globals(struct globals_t* g)
 {
+    srand((unsigned int)time(NULL));
+
     memset(g, 0, sizeof(struct globals_t));
 
 #ifndef MINIMALISTIC_BUILD
@@ -29,9 +31,6 @@ void init_globals(struct globals_t* g)
 static void kill_pid_file(struct globals_t* g)
 {
     if (g->pid_fd >= 0) {
-        assert(g->pid_file != NULL);
-        assert(g->pid_base != NULL);
-
         if (-1 == unlinkat(g->piddir_fd, g->pid_base, 0)) {
             my_log(LOG_DAEMON | LOG_WARNING, "WARNING: Failed to delete the PID file %s: %s", g->pid_file, strerror(errno));
         }

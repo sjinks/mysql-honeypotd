@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,6 +32,10 @@ static int out_of_order(struct connection_t* conn, int mask)
 
     free(conn->buffer);
     conn->buffer = create_ooo_error(conn->sequence + 1);
+    if (conn->buffer == NULL) {
+        return 0;
+    }
+
     conn->size   = (unsigned int)load3(conn->buffer) + 4;
     conn->pos    = 0;
     conn->state  = WRITING_OOO;
@@ -41,7 +44,12 @@ static int out_of_order(struct connection_t* conn, int mask)
 
 int handle_new_connection(struct connection_t* conn, int mask)
 {
+    // It is OK if `thread_id` wraps around
     conn->buffer = create_server_greeting(++globals.thread_id, globals.server_ver);
+    if (conn->buffer == NULL) {
+        return 0;
+    }
+
     conn->size   = (unsigned int)load3(conn->buffer) + 4;
     conn->pos    = 0;
     conn->state  = WRITING_GREETING;
@@ -84,32 +92,29 @@ void do_auth_failed(struct ev_loop* loop, struct ev_timer* timer, int revents)
 }
 
 /**
- * @see https://dev.mysql.com/doc/dev/mysql-server/8.0.11/page_protocol_basic_dt_integers.html#sect_protocol_basic_dt_int_le
+ * @see https://dev.mysql.com/doc/dev/mysql-server/9.4.0/page_protocol_basic_dt_integers.html
  */
 static uint64_t decodeLEI(const uint8_t* buffer, size_t buflen, size_t* bytes)
 {
-    assert(buflen > 0);
-    assert(bytes != NULL);
-
     /* A fixed-length unsigned integer stores its value in a series of bytes with the least significant byte first. */
     switch (*buffer) {
         case 0x00u:
             *bytes = 1;
             return 0;
 
-        case 0xFCu:
+        case 0xFCu: // 0xFC + 2-byte integer
             *bytes = buflen > 2 ? 3 : 0;
             return *bytes ? load2(buffer + 1) : 0;
 
-        case 0xFDu:
+        case 0xFDu: // 0xFD + 3-byte integer
             *bytes = buflen > 3 ? 4 : 0;
             return *bytes ? load3(buffer + 1) : 0;
 
-        case 0xFEu:
+        case 0xFEu: // 0xFE + 8-byte integer
             *bytes = buflen > 8 ? 9 : 0;
             return *bytes ? load8(buffer + 1) : 0;
 
-        case 0xFFu:
+        case 0xFFu: // invalid
             *bytes = 0;
             return 0;
 
@@ -130,7 +135,7 @@ static void log_access_denied(const struct connection_t* conn, const uint8_t* us
         conn->my_ip,
         (unsigned int)conn->my_port,
         pwd_len > 0 ? "YES" : "NO",
-        auth_plugin ? (const char*)auth_plugin : "N/A"
+        auth_plugin != NULL ? (const char*)auth_plugin : "N/A"
     );
 }
 
@@ -154,14 +159,21 @@ static int do_auth(struct connection_t* conn, int mask)
      */
     /* NB: conn->buffer has the packet without the first four bytes */
 
-    uint16_t caps    = load2(conn->buffer + 0x04 - 0x04);
-    uint16_t extcaps = load2(conn->buffer + 0x06 - 0x04);
+    uint16_t caps;
+    uint16_t extcaps;
     const uint8_t* user;
     const uint8_t* user_end;
     uint64_t pwd_len = 0;
     const uint8_t* pos;
     const uint8_t* auth_plugin = NULL;
     uint8_t* tmp;
+
+    if (conn->size < 0x24 - 0x04) {
+        return out_of_order(conn, mask);
+    }
+
+    caps    = load2(conn->buffer + 0x04 - 0x04);
+    extcaps = load2(conn->buffer + 0x06 - 0x04);
 
     if ((caps & CLIENT_PROTOCOL_41) == 0) {
         /* We do not support the old HandshakeResponse320 yet */
@@ -175,6 +187,10 @@ static int do_auth(struct connection_t* conn, int mask)
     }
 
     pos = user_end + 1;
+    if (pos >= conn->buffer + conn->size) {
+        return out_of_order(conn, mask);
+    }
+
     /* const uint8_t* pwd_pos; */
     if (extcaps & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) {
         size_t bytes;
@@ -217,10 +233,18 @@ static int do_auth(struct connection_t* conn, int mask)
 
             free(conn->buffer);
             conn->buffer      = create_auth_switch_request(conn->sequence + 1);
+            if (conn->buffer == NULL) {
+                return 0;
+            }
+
             conn->size        = (unsigned int)load3(conn->buffer) + 4;
             conn->pos         = 0;
             conn->state       = WRITING_ASR;
             conn->auth_failed = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
+            if (conn->auth_failed == NULL) {
+                return 0;
+            }
+
             return handle_write(conn, mask, WRITING_ASR);
         }
     }
@@ -228,6 +252,11 @@ static int do_auth(struct connection_t* conn, int mask)
     log_access_denied(conn, user, auth_plugin, pwd_len);
 
     tmp = create_auth_failed(conn->sequence + 1, user, conn->host, pwd_len > 0);
+    if (tmp == NULL) {
+        // `conn->buffer` will be freed in `kill_connection()`
+        return 0;
+    }
+
     free(conn->buffer);
     conn->buffer = tmp;
     conn->state  = SLEEPING;
@@ -239,7 +268,6 @@ static int do_auth(struct connection_t* conn, int mask)
 
 static int do_auth_asr(struct connection_t* conn, int mask)
 {
-    assert(conn->auth_failed != NULL);
     free(conn->buffer);
     conn->buffer      = conn->auth_failed;
     conn->auth_failed = NULL;

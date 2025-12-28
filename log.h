@@ -2,7 +2,7 @@
 #define LOG_H
 
 /* Make LOG_XXX constants available */
-#include <syslog.h>
+#include <syslog.h> // IWYU pragma: export
 
 #if defined(__clang__) || defined(__GNUC__)
 __attribute__((format(printf, 2, 3)))

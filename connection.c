@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -21,6 +20,7 @@ static void kill_connection(struct connection_t* conn, struct ev_loop* loop)
     ev_timer_stop(loop, &conn->tmr);
     ev_timer_stop(loop, &conn->delay);
 
+    // Deliberately ignore failures
     shutdown(conn->io.fd, SHUT_RDWR);
     close(conn->io.fd);
 
@@ -78,7 +78,6 @@ static void connection_callback(struct ev_loop* loop, ev_io* w, int revents)
 
         case DONE:
             /* Should not happen */
-            assert(0);
             break;
     }
 
@@ -96,11 +95,15 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
     struct sockaddr_storage sa;
     socklen_t len = sizeof(sa);
     if (revents & EV_READ) {
+        int sock;
+        do {
 #ifdef _GNU_SOURCE
-        int sock = accept4(w->fd, (struct sockaddr*)&sa, &len, SOCK_NONBLOCK);
+            sock = accept4(w->fd, (struct sockaddr*)&sa, &len, SOCK_NONBLOCK);
 #else
-        int sock = accept(w->fd, (struct sockaddr*)&sa, &len);
+            sock = accept(w->fd, (struct sockaddr*)&sa, &len);
 #endif
+        } while (-1 == sock && EINTR == errno);
+
         if (sock != -1) {
             struct connection_t* conn;
 
@@ -130,8 +133,7 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
 
             get_ip_port(&sa, conn->ip, &conn->port);
             if (0 != getnameinfo((const struct sockaddr*)&sa, len, conn->host, sizeof(conn->host), NULL, 0, 0)) {
-                assert(INET6_ADDRSTRLEN < NI_MAXHOST);
-                memcpy(conn->host, conn->ip, INET6_ADDRSTRLEN);
+                memcpy(conn->host, conn->ip, strlen(conn->ip) + 1);
             }
 
             len = sizeof(sa);
@@ -140,7 +142,9 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
             }
             else {
                 my_log(LOG_DAEMON | LOG_WARNING, "WARNING: getsockname() failed: %s", strerror(errno));
+                // `atoi()` is safe here because `globals.bind_port` has been validated already
                 conn->my_port = (uint16_t)atoi(globals.bind_port);
+                // `getsockname()` should not fail, but just in case, fall back to `0.0.0.0`
                 memcpy(conn->my_ip, "0.0.0.0", sizeof("0.0.0.0"));
             }
 
