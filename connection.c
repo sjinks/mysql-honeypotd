@@ -113,6 +113,12 @@ void new_connection(struct ev_loop* loop, struct ev_io* w, int revents)
 #endif
 
             conn = calloc(1, sizeof(struct connection_t));
+            if (conn == NULL) {
+                my_log(LOG_DAEMON | LOG_WARNING, "new_connection(): failed to allocate memory for new connection: %s", strerror(errno));
+                close(sock);
+                return;
+            }
+
             conn->loop  = loop;
             conn->state = NEW_CONN;
             ev_io_init(&conn->io, connection_callback, sock, EV_READ | EV_WRITE);

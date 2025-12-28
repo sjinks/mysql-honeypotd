@@ -286,6 +286,9 @@ static int handle_read(struct connection_t* conn, int mask, int(*callback)(struc
             }
 
             conn->buffer = malloc(conn->size);
+            if (conn->buffer == NULL) {
+                return 0;
+            }
         }
 
         n = safe_read(conn->io.fd, conn->buffer + conn->pos, conn->size - conn->pos);

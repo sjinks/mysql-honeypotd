@@ -29,7 +29,7 @@ int main_loop(struct globals_t* g)
     ev_signal_start(g->loop, &sigquit_watcher);
 
     accept_watchers = calloc(g->nsockets, sizeof(ev_io));
-    if (!accept_watchers) {
+    if (accept_watchers == NULL) {
         perror("calloc");
         return EXIT_FAILURE;
     }
