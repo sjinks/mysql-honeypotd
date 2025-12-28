@@ -24,7 +24,12 @@
 static void load_resolver()
 {
     struct addrinfo *result = NULL;
-    getaddrinfo("localhost", NULL, NULL, &result);
+    int res = getaddrinfo("localhost", NULL, NULL, &result);
+    if (0 != res) {
+        // Don't bail here; we will fall back to IP address
+        my_log(LOG_DAEMON | LOG_CRIT, "Failed to load resolver data: %s", gai_strerror(res));
+    }
+
     if (result) {
         freeaddrinfo(result);
     }

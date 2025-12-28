@@ -250,6 +250,8 @@ void parse_options(int argc, char** argv, struct globals_t* g)
 
             case 'd':
                 g->delay = atoi(optarg);
+                // `atoi()` is safe here because negative values are handled below
+                // If `delay` is invalid, it will be 0
                 if (g->delay < 0) {
                     g->delay = 0;
                 }
@@ -258,6 +260,10 @@ void parse_options(int argc, char** argv, struct globals_t* g)
 
             case 's':
                 free(g->server_ver);
+                if (strlen(optarg) > 63) {
+                    fprintf(stderr, "WARNING: server version too long, truncating to 63 characters\n");
+                }
+
                 g->server_ver = my_strndup(optarg, 63);
                 break;
 

@@ -12,13 +12,28 @@
 #include "cmdline.h"
 #include "daemon.h"
 #include "eventloop.h"
-#include "log.h"
+#include "log.h"    // IWYU pragma: keep
 #include "pidfile.h"
-#include "utils.h"
+#include "utils.h"  // IWYU pragma: keep
 
 static void cleanup(void)
 {
     free_globals(&globals);
+}
+
+static uint16_t parse_port(const char* port_str)
+{
+    char* endptr = NULL;
+    long int port_long;
+
+    errno = 0;
+    port_long = strtol(port_str, &endptr, 10);
+    if (errno != 0 || *endptr != '\0' || port_long < 1 || port_long > 65535) {
+        fprintf(stderr, "ERROR: Invalid port number: %s (must be 1-65535)\n", port_str);
+        exit(EXIT_FAILURE);
+    }
+
+    return (uint16_t)port_long;
 }
 
 static void create_socket(struct globals_t* g)
@@ -36,11 +51,11 @@ static void create_socket(struct globals_t* g)
 
     g->sockets = calloc(g->nsockets, sizeof(int));
     if (!g->sockets) {
-        perror("calloc");
+        fprintf(stderr, "ERROR: Failed to allocate memory for sockets\n");
         exit(EXIT_FAILURE);
     }
 
-    port = (uint16_t)atoi(g->bind_port);
+    port = parse_port(g->bind_port);
     for (size_t i=0; i<g->nsockets; ++i) {
         memset(&sin, 0, sizeof(sin));
         if (inet_pton(AF_INET, g->bind_addresses[i], &sin.sa_in.sin_addr) == 1) {
@@ -73,9 +88,11 @@ static void create_socket(struct globals_t* g)
             fprintf(stderr, "WARNING: setsockopt(SO_REUSEADDR) failed: %s\n", strerror(errno));
         }
 
-        if (-1 == setsockopt(g->sockets[i], SOL_IP, IP_FREEBIND, &on, sizeof(int))) {
+#ifdef IP_FREEBIND
+        if (sin.sa.sa_family == AF_INET && -1 == setsockopt(g->sockets[i], SOL_IP, IP_FREEBIND, &on, sizeof(int))) {
             fprintf(stderr, "WARNING: setsockopt(IP_FREEBIND) failed: %s\n", strerror(errno));
         }
+#endif
 
 #if !defined(__linux__) || !defined(SOCK_NONBLOCK)
         if (-1 == make_nonblocking(g->sockets[i])) {

@@ -1,9 +1,10 @@
-#include <assert.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "protocol.h"
 #include "byteutils.h"
+#include "utils.h"
 
 uint8_t* create_server_greeting(uint32_t thread_id, const char* server_ver)
 {
@@ -41,6 +42,9 @@ uint8_t* create_server_greeting(uint32_t thread_id, const char* server_ver)
     size_t pkt_size  = 2 /* payload_size */ + sizeof(part1) + ver_len + 4 /* thread_id */ + 8 /* salt */ + sizeof(part2);
     uint16_t pl_size = (uint16_t)(pkt_size - 4);
     uint8_t* result  = calloc(1, pkt_size);
+    if (result == NULL) {
+        return NULL;
+    }
 
     store2(result, pl_size);
     memcpy(result + sizeof(pl_size),                 part1,      sizeof(part1));
@@ -48,13 +52,8 @@ uint8_t* create_server_greeting(uint32_t thread_id, const char* server_ver)
     store4(result + offset, thread_id);
     memcpy(result + offset + 4 + 8,                  part2,      sizeof(part2));
 
-    for (size_t i=0; i<8; ++i) {
-        result[offset + 4 + i] = (uint8_t)rand();
-    }
-
-    for (size_t i=0; i<12; ++i) {
-        result[offset + 12 + 0x13 + i] = (uint8_t)rand();
-    }
+    fill_random(result + offset + 4, 8);
+    fill_random(result + offset + 12 + 0x13, 12);
 
     return result;
 }
@@ -78,6 +77,10 @@ uint8_t* create_ooo_error(uint8_t seq)
     };
 
     uint8_t* result = calloc(1, sizeof(tpl));
+    if (result == NULL) {
+        return NULL;
+    }
+
     memcpy(result, tpl, sizeof(tpl));
     result[0x03] = seq;
     return result;
@@ -101,12 +104,14 @@ uint8_t* create_auth_switch_request(uint8_t seq)
     };
 
     uint8_t* result = calloc(1, sizeof(tpl));
+    if (result == NULL) {
+        return NULL;
+    }
+
     memcpy(result, tpl, sizeof(tpl));
     result[0x03] = seq;
 
-    for (size_t i=0; i<20; ++i) {
-        result[0x1B + i] = (uint8_t)rand();
-    }
+    fill_random(result + 0x1B, 20);
 
     return result;
 }
@@ -127,15 +132,24 @@ uint8_t* create_auth_failed(uint8_t seq, const uint8_t* user, const char* server
         0xFF, 0x00, 0x00, 0x03, 0xFF, 0x15, 0x04, '#',  '2',  '8',  '0',  '0',  '0'
     };
 
-    char buf[4096];
+    const char format[] = "Access denied for user '%.48s'@'%.*s' (using password: %s)";
+
+    char buf[sizeof(format) + 48 + NI_MAXHOST + 1];
     uint8_t* result;
     uint16_t size;
 
-    int n = snprintf(buf, 4096, "Access denied for user '%.48s'@'%s' (using password: %s)", user, server, use_pwd ? "YES" : "NO");
-    assert(n > 0 && n < 4096);
+    int n = snprintf(buf, sizeof(buf), format, user, (int)NI_MAXHOST, server, use_pwd ? "YES" : "NO");
+    if (n < 0 || n >= (int)sizeof(buf)) {
+        // This must not happen; the buffer is large enough
+        return NULL;
+    }
 
     result = calloc(1, sizeof(tpl) + (size_t)n);
-    size   = (uint16_t)(sizeof(tpl) + (size_t)n - 4);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    size = (uint16_t)(sizeof(tpl) + (size_t)n - 4);
     store2(result, size);
     memcpy(result + sizeof(size), tpl + sizeof(size), sizeof(tpl) - sizeof(size));
     memcpy(result + sizeof(tpl),  buf, (size_t)n);
