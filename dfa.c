@@ -94,8 +94,17 @@ void do_auth_failed(struct ev_loop* loop, struct ev_timer* timer, int revents)
 /**
  * @see https://dev.mysql.com/doc/dev/mysql-server/9.4.0/page_protocol_basic_dt_integers.html
  */
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((nonnull))
+#endif
 static uint64_t decodeLEI(const uint8_t* buffer, size_t buflen, size_t* bytes)
 {
+    // Must not happen
+    if (buflen == 0) {
+        *bytes = 0;
+        return 0;
+    }
+
     /* A fixed-length unsigned integer stores its value in a series of bytes with the least significant byte first. */
     switch (*buffer) {
         case 0x00u:
