@@ -94,6 +94,12 @@ static void create_socket(struct globals_t* g)
         }
 #endif
 
+#ifdef IPV6_FREEBIND
+        if (sin.sa.sa_family == AF_INET6 && -1 == setsockopt(g->sockets[i], SOL_IPV6, IPV6_FREEBIND, &on, sizeof(int))) {
+            fprintf(stderr, "WARNING: setsockopt(IPV6_FREEBIND) failed: %s\n", strerror(errno));
+        }
+#endif
+
 #if !defined(__linux__) || !defined(SOCK_NONBLOCK)
         if (-1 == make_nonblocking(g->sockets[i])) {
             fprintf(stderr, "ERROR: Failed to make the socket non-blocking: %s\n", strerror(errno));
