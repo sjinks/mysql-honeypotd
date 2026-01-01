@@ -89,13 +89,13 @@ static void create_socket(struct globals_t* g)
         }
 
 #ifdef IP_FREEBIND
-        if (sin.sa.sa_family == AF_INET && -1 == setsockopt(g->sockets[i], SOL_IP, IP_FREEBIND, &on, sizeof(int))) {
+        if (sin.sa.sa_family == AF_INET && -1 == setsockopt(g->sockets[i], IPPROTO_IP, IP_FREEBIND, &on, sizeof(int))) {
             fprintf(stderr, "WARNING: setsockopt(IP_FREEBIND) failed: %s\n", strerror(errno));
         }
 #endif
 
 #ifdef IPV6_FREEBIND
-        if (sin.sa.sa_family == AF_INET6 && -1 == setsockopt(g->sockets[i], SOL_IPV6, IPV6_FREEBIND, &on, sizeof(int))) {
+        if (sin.sa.sa_family == AF_INET6 && -1 == setsockopt(g->sockets[i], IPPROTO_IPV6, IPV6_FREEBIND, &on, sizeof(int))) {
             fprintf(stderr, "WARNING: setsockopt(IPV6_FREEBIND) failed: %s\n", strerror(errno));
         }
 #endif
