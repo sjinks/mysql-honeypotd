@@ -134,7 +134,7 @@ uint8_t* create_auth_failed(uint8_t seq, const uint8_t* user, const char* server
 
     const char format[] = "Access denied for user '%.48s'@'%.*s' (using password: %s)";
 
-    char buf[sizeof(format) + 48 + NI_MAXHOST + 1];
+    char buf[sizeof(format) + 48 + NI_MAXHOST];
     uint8_t* result;
     uint16_t size;
 
